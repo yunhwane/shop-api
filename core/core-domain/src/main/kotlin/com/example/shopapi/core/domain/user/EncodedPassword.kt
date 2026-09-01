@@ -1,6 +1,7 @@
 package com.example.shopapi.core.domain.user
 
 import com.example.shopapi.core.domain.common.InvalidValueException
+import com.example.shopapi.core.domain.common.reconstituting
 
 /**
  * 해싱된 비밀번호. 도메인은 어떤 알고리즘인지 알지 못한다.
@@ -22,5 +23,8 @@ class EncodedPassword private constructor(
             }
             return EncodedPassword(raw)
         }
+
+        /** 저장소에서 읽어온 값을 복원한다. storage 어댑터만 호출한다 */
+        fun reconstitute(stored: String): EncodedPassword = reconstituting("password") { of(stored) }
     }
 }

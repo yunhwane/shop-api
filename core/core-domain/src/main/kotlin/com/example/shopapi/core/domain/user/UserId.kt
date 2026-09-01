@@ -1,6 +1,7 @@
 package com.example.shopapi.core.domain.user
 
 import com.example.shopapi.core.domain.common.InvalidValueException
+import com.example.shopapi.core.domain.common.reconstituting
 
 /**
  * 로그인 아이디. 영문과 숫자만 허용하고 소문자로 정규화한다.
@@ -30,5 +31,8 @@ value class UserId private constructor(
             }
             return UserId(trimmed.lowercase())
         }
+
+        /** 저장소에서 읽어온 값을 복원한다. storage 어댑터만 호출한다 */
+        fun reconstitute(stored: String): UserId = reconstituting("userId") { of(stored) }
     }
 }

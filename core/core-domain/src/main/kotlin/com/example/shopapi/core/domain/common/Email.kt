@@ -33,5 +33,8 @@ value class Email private constructor(
             }
             return Email(normalized)
         }
+
+        /** 저장소에서 읽어온 값을 복원한다. storage 어댑터만 호출한다 */
+        fun reconstitute(stored: String): Email = reconstituting("email") { of(stored) }
     }
 }

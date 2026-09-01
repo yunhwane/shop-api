@@ -1,10 +1,14 @@
 package com.example.shopapi.architecture
 
 import com.example.shopapi.architecture.Packages.API
+import com.example.shopapi.architecture.Packages.CORE_DOMAIN
 import com.example.shopapi.architecture.Packages.ROOT
 import com.example.shopapi.architecture.Packages.STORAGE
+import com.tngtech.archunit.core.domain.JavaCall.Predicates.target
 import com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage
 import com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEndingWith
+import com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameStartingWith
+import com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -102,4 +106,19 @@ class CodingConventionTest {
             // Kotlin 프로퍼티는 private 필드 + 접근자로 컴파일되므로 검사 대상이 0건이다.
             // 앞으로 들어올 Java 코드나 @JvmField 를 막는 예방 규칙이라 빈 상태를 허용한다.
             .allowEmptyShould(true)
+
+    /**
+     * 값 객체의 `reconstitute` 는 검증 실패를 `INVALID_REQUEST` 가 아니라 `INTERNAL_ERROR` 로
+     * 바꾼다. 저장된 데이터가 깨진 경우를 위한 통로다. 입력 경로에서 쓰면 클라이언트가 보낸
+     * 잘못된 값이 400 대신 500 으로 나가고, 사용자는 무엇을 고쳐야 하는지 알 수 없게 된다.
+     */
+    @ArchTest
+    val `복원 팩토리는 storage 모듈에서만 호출한다`: ArchRule =
+        noClasses()
+            .that()
+            .resideOutsideOfPackage(STORAGE)
+            .should()
+            .callMethodWhere(
+                target(nameStartingWith("reconstitute")).and(target(owner(resideInAPackage(CORE_DOMAIN)))),
+            ).because("검증을 통과한 입력과 이미 저장된 값은 실패했을 때 의미가 다르다")
 }

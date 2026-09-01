@@ -162,6 +162,11 @@ enum class EmailVerificationStatus { PENDING, VERIFIED, EXPIRED, CONSUMED }
 정규화를 도메인에서 하는 이유는 [0005](../0005-uniqueness-and-email-enumeration.md) 참고 —
 `Alice` 와 `alice` 가 별개 계정이 되면 안 된다.
 
+값 객체마다 팩토리가 둘이다. `of(raw)` 는 바깥에서 들어온 입력용이고,
+`reconstitute(stored)` 는 저장소에서 읽은 값용이다. 검증 내용은 같고 실패의 의미만
+다르다 — 전자는 `400`, 후자는 `500` 이다([0007](../0007-reconstitution-vs-input-validation.md)).
+`reconstitute` 호출은 ArchUnit 이 `storage` 모듈로 제한한다.
+
 비밀번호 상한 **64자와 ASCII 제한은 bcrypt 때문**이다. bcrypt 는 입력을 72바이트에서
 자른다. 한글을 허용하면 UTF-8 로 글자당 3바이트라 64자가 192바이트가 되어,
 **뒷부분이 조용히 버려진다.** 길이가 아니라 바이트 수가 걸리는 문제라
