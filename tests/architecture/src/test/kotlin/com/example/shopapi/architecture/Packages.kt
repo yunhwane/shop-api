@@ -20,6 +20,20 @@ object Packages {
     /** infrastructure:storage-db */
     const val STORAGE = "$ROOT.storage.."
 
+    /** infrastructure:security */
+    const val SECURITY = "$ROOT.security.."
+
+    /** infrastructure:client-mail */
+    const val CLIENT_MAIL = "$ROOT.client.mail.."
+
     /** api */
     const val API = "$ROOT.api.."
+
+    /**
+     * 인프라 어댑터 전체.
+     *
+     * api 는 이들 중 어느 것도 컴파일 타임에 참조하지 않는다. 새 어댑터 모듈을 만들면
+     * 여기에 추가해야 규칙이 함께 걸린다.
+     */
+    val INFRASTRUCTURE = arrayOf(STORAGE, SECURITY, CLIENT_MAIL)
 }

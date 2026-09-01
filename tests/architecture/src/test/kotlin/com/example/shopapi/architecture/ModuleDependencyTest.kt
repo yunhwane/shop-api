@@ -1,10 +1,13 @@
 package com.example.shopapi.architecture
 
 import com.example.shopapi.architecture.Packages.API
+import com.example.shopapi.architecture.Packages.CLIENT_MAIL
 import com.example.shopapi.architecture.Packages.CORE
 import com.example.shopapi.architecture.Packages.CORE_DOMAIN
 import com.example.shopapi.architecture.Packages.CORE_ENUM
+import com.example.shopapi.architecture.Packages.INFRASTRUCTURE
 import com.example.shopapi.architecture.Packages.ROOT
+import com.example.shopapi.architecture.Packages.SECURITY
 import com.example.shopapi.architecture.Packages.STORAGE
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
@@ -17,7 +20,7 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
 /**
  * 모듈 경계 규칙.
  *
- * Gradle 이 컴파일 타임에 막아주는 것도 있지만(api 는 storage-db 를 runtimeOnly 로만 참조),
+ * Gradle 이 컴파일 타임에 막아주는 것도 있지만(api 는 인프라 모듈을 runtimeOnly 로만 참조),
  * 패키지 단위 규칙과 프레임워크 격리는 빌드 설정만으로는 강제되지 않는다.
  */
 @AnalyzeClasses(
@@ -55,7 +58,7 @@ class ModuleDependencyTest {
             .resideInAPackage(CORE)
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage(STORAGE, API)
+            .resideInAnyPackage(*INFRASTRUCTURE, API)
             .because("의존 방향은 항상 안쪽(core)을 향한다")
 
     @ArchTest
@@ -69,47 +72,63 @@ class ModuleDependencyTest {
             .because("core-enum 은 최하위 모듈이다. 의존은 core-domain -> core-enum 한 방향뿐이다")
 
     @ArchTest
-    val `infrastructure 는 api 를 모른다`: ArchRule =
+    val `인프라는 api 를 모른다`: ArchRule =
         noClasses()
             .that()
-            .resideInAPackage(STORAGE)
+            .resideInAnyPackage(*INFRASTRUCTURE)
             .should()
             .dependOnClassesThat()
             .resideInAPackage(API)
             .because("어댑터는 자신을 쓰는 애플리케이션을 알아서는 안 된다")
 
     @ArchTest
-    val `api 는 영속성 구현체를 직접 참조하지 않는다`: ArchRule =
+    val `인프라 어댑터끼리 서로를 모른다`: ArchRule =
+        noClasses()
+            .that()
+            .resideInAPackage(STORAGE)
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(SECURITY, CLIENT_MAIL)
+            .because("어댑터는 서로 독립적으로 교체될 수 있어야 한다")
+
+    @ArchTest
+    val `api 는 인프라 구현체를 직접 참조하지 않는다`: ArchRule =
         noClasses()
             .that()
             .resideInAPackage(API)
             .should()
             .dependOnClassesThat()
-            .resideInAPackage(STORAGE)
+            .resideInAnyPackage(*INFRASTRUCTURE)
             .because("api 는 core 의 포트에만 의존한다. 구현체는 런타임에 주입된다")
 
     @ArchTest
     val `계층 구조를 지킨다`: ArchRule =
-        // 모듈이 아직 비어 있어 optionalLayer 를 쓴다.
-        // 각 모듈에 클래스가 생기면 layer 로 바꿔서 "빈 계층"도 실패로 잡는 것을 권장한다.
         layeredArchitecture()
             .consideringOnlyDependenciesInLayers()
-            .optionalLayer("core-enum")
+            .layer("core-enum")
             .definedBy(CORE_ENUM)
-            .optionalLayer("core-domain")
+            .layer("core-domain")
             .definedBy(CORE_DOMAIN)
-            .optionalLayer("infrastructure")
+            .layer("storage")
             .definedBy(STORAGE)
-            .optionalLayer("api")
+            .layer("security")
+            .definedBy(SECURITY)
+            .layer("client-mail")
+            .definedBy(CLIENT_MAIL)
+            .layer("api")
             .definedBy(API)
             .whereLayer("api")
             .mayNotBeAccessedByAnyLayer()
-            .whereLayer("infrastructure")
+            .whereLayer("storage")
+            .mayNotBeAccessedByAnyLayer()
+            .whereLayer("security")
+            .mayNotBeAccessedByAnyLayer()
+            .whereLayer("client-mail")
             .mayNotBeAccessedByAnyLayer()
             .whereLayer("core-domain")
-            .mayOnlyBeAccessedByLayers("infrastructure", "api")
+            .mayOnlyBeAccessedByLayers("storage", "security", "client-mail", "api")
             .whereLayer("core-enum")
-            .mayOnlyBeAccessedByLayers("core-domain", "infrastructure", "api")
+            .mayOnlyBeAccessedByLayers("core-domain", "storage", "security", "client-mail", "api")
 
     @ArchTest
     val `모듈 간 순환 의존이 없다`: ArchRule =
