@@ -11,8 +11,6 @@ import org.springframework.web.util.UriComponentsBuilder
 
 /**
  * 인증 메일의 제목과 본문을 만들고 [MailSender] 로 넘긴다.
- *
- * 유스케이스가 HTML 과 프론트엔드 URL 을 몰라도 되도록 여기에 가둔다.
  */
 @Component
 internal class TemplateVerificationMailer(
@@ -32,10 +30,6 @@ internal class TemplateVerificationMailer(
         )
     }
 
-    /**
-     * 링크는 API 가 아니라 프론트엔드 페이지를 가리킨다. 그 페이지가 확인 API 를 호출한다.
-     * 메일 클라이언트의 링크 프리페치가 사용자 대신 인증을 눌러버리는 것을 막기 위해서다(ADR 0002).
-     */
     private fun buildLink(token: VerificationToken): String =
         UriComponentsBuilder
             .fromUriString(properties.verificationUrl)

@@ -15,7 +15,6 @@ import com.example.shopapi.core.domain.common.InvalidValueException
 class RawPassword private constructor(
     val value: String,
 ) {
-    /** 로그와 예외 메시지에 평문이 새지 않도록 마스킹한다 */
     override fun toString(): String = "RawPassword(****)"
 
     companion object {

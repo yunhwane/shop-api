@@ -12,7 +12,6 @@ interface MailSender {
     fun send(mail: Mail)
 }
 
-/** 전송할 메일 한 통. 본문은 HTML 이다. */
 class Mail(
     val to: Email,
     val subject: String,

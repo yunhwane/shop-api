@@ -13,5 +13,4 @@ class DuplicateUserIdException(
     val userId: UserId,
 ) : DomainException(ErrorCode.DUPLICATE_USER_ID)
 
-/** 이메일이 이미 가입에 쓰였다. */
 class DuplicateEmailException : DomainException(ErrorCode.DUPLICATE_EMAIL)

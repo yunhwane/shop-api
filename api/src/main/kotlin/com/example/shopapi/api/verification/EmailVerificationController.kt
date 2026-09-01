@@ -32,13 +32,7 @@ class EmailVerificationController(
             .body(ApiResponse.of(VerificationIssuedResponse.from(verification)))
     }
 
-    /**
-     * 인증을 완료한다.
-     *
-     * 메일 링크는 이 API 가 아니라 프론트엔드 `/verify` 페이지를 가리키고, 그 페이지가
-     * 여기를 호출한다. 메일 클라이언트의 링크 프리페치가 사용자 대신 인증을 눌러버리는
-     * 것을 막기 위해서다(ADR 0002).
-     */
+    /** 인증을 완료한다. 메일 링크가 아니라 프론트엔드 `/verify` 페이지가 호출한다(ADR 0002). */
     @PostMapping("/confirm")
     fun confirm(
         @RequestBody request: VerificationConfirmRequest,

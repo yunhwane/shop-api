@@ -8,14 +8,10 @@ package com.example.shopapi.architecture
 object Packages {
     const val ROOT = "com.example.shopapi"
 
-    /** core:core-enum */
     const val CORE_ENUM = "$ROOT.core.enums.."
-
-    /** core:core-domain */
     const val CORE_DOMAIN = "$ROOT.core.domain.."
-
-    /** core 전체 */
     const val CORE = "$ROOT.core.."
+    const val API = "$ROOT.api.."
 
     /** infrastructure:storage-db */
     const val STORAGE = "$ROOT.storage.."
@@ -25,9 +21,6 @@ object Packages {
 
     /** infrastructure:client-mail */
     const val CLIENT_MAIL = "$ROOT.client.mail.."
-
-    /** api */
-    const val API = "$ROOT.api.."
 
     /**
      * 인프라 어댑터 전체.

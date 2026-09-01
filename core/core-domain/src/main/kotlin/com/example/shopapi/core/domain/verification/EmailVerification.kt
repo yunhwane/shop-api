@@ -107,10 +107,8 @@ class EmailVerification(
     override fun toString(): String = "EmailVerification(id=$id, verificationId=$verificationId, email=$email)"
 
     companion object {
-        /** 메일 링크의 유효 기간 */
         val TIME_TO_LIVE: Duration = Duration.ofMinutes(30)
 
-        /** 인증을 마친 뒤 가입까지 주어지는 시간 */
         val CONSUME_TIME_TO_LIVE: Duration = Duration.ofMinutes(30)
 
         fun issue(

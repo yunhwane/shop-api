@@ -12,7 +12,6 @@ import com.example.shopapi.core.domain.common.InvalidValueException
 value class VerificationToken private constructor(
     val value: String,
 ) {
-    /** 토큰이 로그에 남지 않도록 마스킹한다. 실제 값은 [value] 로만 꺼낸다 */
     override fun toString(): String = "VerificationToken(****)"
 
     companion object {

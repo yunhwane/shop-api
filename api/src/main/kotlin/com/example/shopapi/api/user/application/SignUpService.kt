@@ -28,7 +28,6 @@ class SignUpService(
 ) {
     @Transactional
     fun signUp(command: SignUpCommand): User {
-        // 값 객체 생성이 곧 형식 검증이다. 실패하면 InvalidValueException 이 나간다.
         val verificationId = VerificationId.of(command.verificationId)
         val userId = UserId.of(command.userId)
         val rawPassword = RawPassword.of(command.password)
@@ -37,8 +36,6 @@ class SignUpService(
             verificationRepository.findByVerificationId(verificationId) ?: throw VerificationNotFoundException()
 
         val now = timeProvider.now()
-        // 미인증 / 만료 / 이미 사용됨을 도메인이 판정한다. 소비 처리하지 않으면
-        // 인증 하나로 계정을 여러 개 만들 수 있다.
         val consumed = verification.consume(now)
 
         // 이 사전 검사가 중복을 막는 것이 아니다. 동시 요청은 둘 다 통과한다.

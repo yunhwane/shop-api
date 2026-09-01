@@ -15,10 +15,6 @@ import org.springframework.web.client.RestClientException
  *
  * 공식 SDK 대신 [RestClient] 로 직접 호출한다. 엔드포인트가 하나뿐이라 SDK 가 주는 값이
  * 적고, Spring Boot BOM 이 관리하지 않는 의존성을 늘리지 않기 위해서다.
- *
- * [RestClient] 는 Boot 의 자동 설정에 기대지 않고 [MailAdapterConfig] 가 직접 만든다.
- * 타임아웃을 이 모듈이 책임지기 위해서다 - 응답 없는 메일 API 가 요청 스레드를
- * 무한정 붙잡으면 안 된다.
  */
 @Component
 @ConditionalOnProperty(prefix = "mail", name = ["provider"], havingValue = "resend", matchIfMissing = true)

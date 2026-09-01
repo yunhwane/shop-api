@@ -6,10 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ErrorCodeHttpStatusTest {
-    /**
-     * 매핑을 빠뜨리면 조용히 500 으로 나간다. 새 ErrorCode 를 추가하고 이 표를
-     * 갱신하지 않는 실수를 여기서 잡는다(ADR 0006).
-     */
     @Test
     fun `모든 에러 코드에 상태 코드가 매핑돼 있다`() {
         val unmapped = ErrorCode.entries - ErrorCodeHttpStatus.mappedCodes()

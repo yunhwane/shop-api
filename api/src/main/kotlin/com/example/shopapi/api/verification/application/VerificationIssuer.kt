@@ -37,8 +37,6 @@ class VerificationIssuer(
     fun issue(email: Email): EmailVerification {
         if (userRepository.existsByEmail(email)) throw DuplicateEmailException()
 
-        // 이전 링크를 무효화한다. 남겨 두면 오래된 메일로도 인증이 되어,
-        // 사용자가 어느 메일을 열었는지에 따라 결과가 달라진다.
         verificationRepository.deleteUnconsumedByEmail(email)
 
         return verificationRepository.save(
