@@ -20,6 +20,14 @@ class InvalidRefreshTokenException : DomainException(ErrorCode.INVALID_REFRESH_T
 class RefreshTokenExpiredException : DomainException(ErrorCode.INVALID_REFRESH_TOKEN)
 
 /**
+ * 자격은 제시됐으나 그것으로 요청을 수행할 수 없다.
+ *
+ * [InvalidCredentialsException] 과 구분한다. 그쪽은 아이디와 비밀번호를 보낸 요청에 대한
+ * 답이라, 자격을 보내지도 않은 요청에 쓰면 메시지가 상황과 어긋난다.
+ */
+class UnauthenticatedException : DomainException(ErrorCode.UNAUTHENTICATED)
+
+/**
  * 이미 소비된 리프레시 토큰이 다시 왔다.
  *
  * [userId] 를 들고 다니는 이유는 호출자가 이 사용자의 토큰을 전부 지워야 하기 때문이다.

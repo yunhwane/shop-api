@@ -57,6 +57,7 @@ HTTP 상태만으로는 구분되지 않는 경우가 있다. `409` 하나에 �
 | `REFRESH_TOKEN_REUSED` | 401 | 이미 쓴 리프레시 토큰이 다시 왔다. 모든 기기에서 로그아웃된다
 | `UNAUTHENTICATED` | 401 | 액세스 토큰이 없거나 유효하지 않다
 | `ACCOUNT_SUSPENDED` | 403 | 정지된 계정이다
+| `ACCOUNT_WITHDRAWN` | 403 | 탈퇴한 계정이다
 | `ACCESS_DENIED` | 403 | 권한이 없다
 | `MAIL_SEND_FAILED` | 502 | 메일 게이트웨이 호출이 실패했다
 | `INTERNAL_ERROR` | 500 | 그 외

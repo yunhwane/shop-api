@@ -5,6 +5,7 @@ import com.example.shopapi.core.domain.auth.RefreshTokenReusedException
 import com.example.shopapi.core.domain.port.RefreshTokenRepository
 import com.example.shopapi.core.domain.port.TimeProvider
 import com.example.shopapi.core.domain.port.TokenHasher
+import com.example.shopapi.core.domain.port.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class TokenReissueService(
+    private val users: UserRepository,
     private val refreshTokens: RefreshTokenRepository,
     private val tokenHasher: TokenHasher,
     private val tokenIssuer: AuthTokenIssuer,
@@ -37,19 +39,32 @@ class TokenReissueService(
                 ?: throw InvalidRefreshTokenException()
 
         val now = timeProvider.now()
-        val used =
-            try {
-                stored.use(now)
-            } catch (e: RefreshTokenReusedException) {
-                // 이미 쓴 토큰이 다시 왔다는 것은 어딘가로 새어 나갔다는 뜻이다.
-                // 어느 쪽이 탈취범인지 알 수 없으므로 양쪽 모두 끊는다.
-                log.warn("리프레시 토큰 재사용 탐지. 해당 사용자의 토큰을 모두 폐기한다. userId={}", e.userId)
-                refreshTokens.deleteAllByUserId(e.userId)
-                throw e
-            }
+        try {
+            stored.ensureUsable(now)
+        } catch (e: RefreshTokenReusedException) {
+            revokeAllOf(e.userId)
+            throw e
+        }
 
-        refreshTokens.save(used)
-        return tokenIssuer.issueFor(used.userId, now)
+        // 여기까지의 검사는 흔한 실패를 빠르게 걸러낼 뿐이다. 같은 토큰으로 동시에 들어온
+        // 요청은 둘 다 이 지점을 통과한다. 실제 소비는 DB 가 한 번만 성공시킨다.
+        if (!refreshTokens.markUsedIfUnused(requireNotNull(stored.id) { "저장된 토큰이어야 한다" }, now)) {
+            revokeAllOf(stored.userId)
+            throw RefreshTokenReusedException(stored.userId)
+        }
+
+        // 계정 상태를 여기서 다시 본다. 로그인 때만 보면 정지된 뒤에도 재발급으로
+        // 접근이 유지되고, 회전이 만료를 매번 갱신해 사실상 끊기지 않는 세션이 된다.
+        val user = users.findById(stored.userId) ?: throw InvalidRefreshTokenException()
+        user.ensureCanLogIn()
+
+        return tokenIssuer.issueFor(stored.userId, now)
+    }
+
+    private fun revokeAllOf(userId: Long) {
+        // 어느 쪽이 탈취범인지 알 수 없으므로 양쪽 모두 끊는다.
+        log.warn("리프레시 토큰 재사용 탐지. 해당 사용자의 토큰을 모두 폐기한다. userId={}", userId)
+        refreshTokens.deleteAllByUserId(userId)
     }
 
     /**

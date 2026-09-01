@@ -1,6 +1,7 @@
 package com.example.shopapi.api.config
 
 import com.example.shopapi.api.auth.JwtAuthenticationFilter
+import com.example.shopapi.core.domain.port.AccessTokenParser
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,7 +18,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val accessTokenParser: AccessTokenParser,
 ) {
     @Bean
     fun securityFilterChain(
@@ -40,8 +41,10 @@ class SecurityConfig(
                     .authenticated()
             }.exceptionHandling {
                 it.authenticationEntryPoint(authenticationEntryPoint).accessDeniedHandler(accessDeniedHandler)
-            }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
-            .build()
+            }.addFilterBefore(
+                JwtAuthenticationFilter(accessTokenParser),
+                UsernamePasswordAuthenticationFilter::class.java,
+            ).build()
 
     /**
      * 인증·인가 실패도 `GlobalExceptionHandler` 를 거치게 한다.

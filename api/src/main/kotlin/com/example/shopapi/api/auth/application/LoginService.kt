@@ -22,28 +22,29 @@ class LoginService(
     private val timeProvider: TimeProvider,
 ) {
     /**
-     * 사용자를 찾지 못했을 때 비교할 가짜 해시.
+     * 실패 경로에서 비교할 가짜 해시.
      *
-     * 없는 아이디라고 바로 반환하면 bcrypt 를 건너뛰어 응답이 눈에 띄게 빨라진다.
+     * 아이디가 없다고 바로 반환하면 bcrypt 를 건너뛰어 응답이 눈에 띄게 빨라진다.
      * 본문이 같아도 시간 차이만으로 아이디 존재를 알아낼 수 있다.
      */
-    private val decoyPassword: EncodedPassword by lazy {
-        passwordEncoder.encode(RawPassword.of("decoyPassword1"))
-    }
+    private val decoyPassword: EncodedPassword by lazy { passwordEncoder.encode(DECOY_PASSWORD) }
 
     @Transactional
     fun login(command: LoginCommand): IssuedTokens {
-        // 형식 위반도 400 이 아니라 401 로 돌려보낸다. 로그인에서 400 과 401 이 갈리면
+        // 형식 위반이어도 400 이 아니라 401 로 돌려보낸다. 로그인에서 400 과 401 이 갈리면
         // 그 차이만으로 아이디 규칙과 존재 여부를 좁혀 갈 수 있다.
-        val userId = asCredential { UserId.of(command.userId) }
-        val rawPassword = asCredential { RawPassword.of(command.password) }
+        val userId = parseOrNull { UserId.of(command.userId) }
+        val rawPassword = parseOrNull { RawPassword.of(command.password) }
+        val user = userId?.let(users::findByUserId)
 
-        val user = users.findByUserId(userId)
-        if (user == null) {
-            passwordEncoder.matches(rawPassword, decoyPassword)
-            throw InvalidCredentialsException()
-        }
-        if (!passwordEncoder.matches(rawPassword, user.password)) {
+        // 어느 실패 경로를 타든 해시 비교를 정확히 한 번 치른다. 형식 위반만 비교를
+        // 건너뛰면, 응답 시간으로 "형식이 틀렸다"와 "없는 아이디다"가 갈린다.
+        val matches =
+            passwordEncoder.matches(
+                rawPassword ?: DECOY_PASSWORD,
+                user?.password ?: decoyPassword,
+            )
+        if (user == null || rawPassword == null || !matches) {
             throw InvalidCredentialsException()
         }
 
@@ -54,12 +55,16 @@ class LoginService(
         return tokenIssuer.issueFor(id, timeProvider.now())
     }
 
-    private fun <T> asCredential(build: () -> T): T =
+    private fun <T> parseOrNull(build: () -> T): T? =
         try {
             build()
         } catch (e: InvalidValueException) {
-            throw InvalidCredentialsException()
+            null
         }
+
+    private companion object {
+        val DECOY_PASSWORD = RawPassword.of("decoyPassword1")
+    }
 }
 
 data class LoginCommand(
