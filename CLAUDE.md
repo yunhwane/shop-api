@@ -18,6 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew :api:test                  # 특정 모듈 테스트
 ./gradlew :core:core-domain:test     # 도메인 단위 테스트. Spring 없이 돈다
 
+# API 문서. build 에 포함되며 tests/api-docs/build/docs/asciidoc/index.html 에 나온다
+./gradlew :tests:api-docs:asciidoctor
+
 # Resend API 키 없이 실행. 인증 메일 대신 링크가 로그로 나온다
 ./gradlew :api:bootRun --args='--mail.provider=log'
 
@@ -60,6 +63,7 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 | `infrastructure:client-mail` | `com.example.shopapi.client.mail` | `MailSender` 구현과 메일 템플릿 |
 | `api` | `com.example.shopapi.api` | 실행 모듈. controller / dto / 유스케이스 / 설정 |
 | `tests:architecture` | `com.example.shopapi.architecture` | ArchUnit 규칙 검증 전용. 프로덕션 코드 없음 |
+| `tests:api-docs` | `com.example.shopapi.apidocs` | REST Docs 문서 생성 전용. 프로덕션 코드 없음 |
 
 핵심 제약 — 새 코드를 넣을 위치를 정할 때 이것부터 확인한다:
 
@@ -96,6 +100,21 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 - 실패(4xx/5xx): `application/problem+json`, RFC 9457 `ProblemDetail`. `GlobalExceptionHandler` 가 전담한다.
 
 에러를 추가하려면 `core-enum` 의 `ErrorCode` 와 `api` 의 `ErrorCodeHttpStatus` 매핑표를 **둘 다** 고친다. 상태 코드가 `api` 에 있는 이유는 409 냐 400 이냐가 HTTP 의 관심사이기 때문이다. 매핑을 빠뜨리면 조용히 500 으로 나가므로 `ErrorCodeHttpStatusTest` 가 누락을 잡는다.
+
+### API 문서
+
+`tests:api-docs` 가 REST Docs 로 만든다. 스니펫은 테스트가, 조립은 asciidoctor 가 한다.
+`build` 에 물려 있어 `./gradlew build` 로 항상 최신이 나온다.
+
+**앱은 문서를 서빙하지 않는다.** 서빙하려면 `api:bootJar` 가 이 모듈의 산출물을 가져가야
+하는데, 이 모듈은 컨트롤러를 호출하려고 `api` 에 의존하므로 Gradle 순환이 된다.
+CI 가 `api-docs` 아티팩트로 올린다.
+
+문서가 **조용히 비어서 나오는** 실패 방식이 있으니 주의한다. `operation::` 매크로가
+처리되지 않으면 빌드는 성공하고 HTML 도 만들어지지만 API 내용이 하나도 없다.
+`spring-restdocs-asciidoctor` 를 `asciidoctorExt` 에 넣고, AsciidoctorJ 버전을
+플러그인 기본값이 아니라 그 확장이 요구하는 값으로 맞춰야 한다. CI 는
+`if-no-files-found: error` 로 산출물 자체의 부재를 잡지만, 빈 문서는 잡지 못한다.
 
 ### 설계 결정은 `adr/` 에
 

@@ -8,4 +8,5 @@ include(
     "infrastructure:client-mail",
     "api",
     "tests:architecture",
+    "tests:api-docs",
 )

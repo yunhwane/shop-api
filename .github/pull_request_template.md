@@ -24,6 +24,7 @@
 - [ ] `infrastructure:client-mail`
 - [ ] `api`
 - [ ] `tests:architecture`
+- [ ] `tests:api-docs`
 - [ ] 빌드 설정 (`buildSrc`, `settings.gradle.kts`, `gradle/libs.versions.toml`)
 - [ ] 문서 (`adr/`, `README.md`, `CLAUDE.md`)
 

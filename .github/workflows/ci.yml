@@ -42,6 +42,16 @@ jobs:
       - name: Test
         run: ./gradlew build
 
+      # 문서가 조용히 비어서 나오는 사고가 있었다(operation:: 매크로 미처리).
+      # if-no-files-found: error 로 생성 실패를 빌드 실패로 만든다.
+      - name: Upload API docs
+        uses: actions/upload-artifact@v7
+        with:
+          name: api-docs
+          path: tests/api-docs/build/docs/asciidoc/
+          retention-days: 14
+          if-no-files-found: error
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
