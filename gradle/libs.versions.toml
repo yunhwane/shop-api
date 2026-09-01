@@ -6,6 +6,11 @@ spring-dependency-management = "1.1.7"
 ktlint-gradle = "14.2.0"
 ktlint = "1.8.0"
 archunit = "1.5.0"
+# Boot BOM 이 관리하지 않는다. spring-restdocs 자체는 BOM 이 관리한다.
+asciidoctor = "4.0.5"
+# 플러그인 기본값은 2.5.7 인데 spring-restdocs-asciidoctor 4.x 가 3.0.0 을 요구한다.
+# 맞추지 않으면 operation:: 매크로 처리 중 AbstractMethodError 가 난다.
+asciidoctorj = "3.0.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -18,3 +23,7 @@ ktlint-gradle-plugin = { module = "org.jlleitschuh.gradle.ktlint:org.jlleitschuh
 
 # 아키텍처 테스트 (Spring BOM 이 관리하지 않아 버전을 직접 지정)
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[plugins]
+# REST Docs 가 만든 스니펫을 HTML 로 조립한다. tests:api-docs 에서만 쓴다.
+asciidoctor-convert = { id = "org.asciidoctor.jvm.convert", version.ref = "asciidoctor" }

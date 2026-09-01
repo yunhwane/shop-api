@@ -52,7 +52,8 @@ shop-api/
 ├─ api/                             실행 모듈. controller / dto / 유스케이스 / 설정
 │
 └─ tests/
-   └─ architecture/                 ArchUnit 아키텍처 규칙 검증 (테스트 전용)
+   ├─ architecture/                 ArchUnit 아키텍처 규칙 검증 (테스트 전용)
+   └─ api-docs/                     Spring REST Docs API 문서 생성 (테스트 전용)
 ```
 
 `tests/*` 는 프로덕션 코드가 없는 검증 전용 모듈입니다. 이 모듈들만 예외적으로
@@ -98,6 +99,19 @@ plugins {
 | `application-mail.properties` | `client-mail` | `mail.provider` (`resend` / `smtp` / `log`) |
 
 Resend API 키는 환경변수 `RESEND_API_KEY` 로 주입합니다.
+
+## API 문서
+
+Spring REST Docs 로 만듭니다. 테스트가 실제로 보낸 요청과 받은 응답으로 조립되므로,
+구현이 바뀌면 문서를 만드는 테스트가 먼저 깨집니다.
+
+```bash
+./gradlew build     # tests/api-docs/build/docs/asciidoc/index.html
+```
+
+앱은 이 문서를 서빙하지 않습니다. 서빙하려면 `api:bootJar` 가 `tests:api-docs` 의
+산출물을 가져가야 하는데, 이 모듈은 컨트롤러를 호출하려고 `api` 에 의존하므로
+Gradle 순환이 됩니다. CI 가 `api-docs` 아티팩트로 올리니 PR 에서 내려받아 보면 됩니다.
 
 ## 설계 문서
 
