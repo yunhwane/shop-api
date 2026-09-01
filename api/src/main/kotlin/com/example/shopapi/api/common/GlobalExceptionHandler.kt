@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.core.AuthenticationException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
@@ -62,6 +64,42 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         } else {
             log.warn("도메인 예외. code={} detail={}", e.errorCode, e.message)
         }
+        return ResponseEntity.status(problem.status).body(problem)
+    }
+
+    /**
+     * 인증되지 않은 요청. Spring Security 의 필터 단계에서 올라온다.
+     *
+     * 왜 실패했는지(토큰 없음 / 만료 / 서명 오류)는 알려주지 않는다. 공격자에게
+     * 다음 시도의 힌트가 되고, 정상 클라이언트는 어느 쪽이든 다시 로그인하면 된다.
+     */
+    @ExceptionHandler(AuthenticationException::class)
+    fun handleAuthentication(
+        e: AuthenticationException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ProblemDetail> {
+        log.debug("인증 실패. uri={}", request.requestURI, e)
+        val problem =
+            ProblemDetails.of(
+                errorCode = ErrorCode.UNAUTHENTICATED,
+                detail = ErrorCode.UNAUTHENTICATED.defaultMessage,
+                instance = request.requestURI,
+            )
+        return ResponseEntity.status(problem.status).body(problem)
+    }
+
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDenied(
+        e: AccessDeniedException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ProblemDetail> {
+        log.warn("접근 거부. uri={}", request.requestURI)
+        val problem =
+            ProblemDetails.of(
+                errorCode = ErrorCode.ACCESS_DENIED,
+                detail = ErrorCode.ACCESS_DENIED.defaultMessage,
+                instance = request.requestURI,
+            )
         return ResponseEntity.status(problem.status).body(problem)
     }
 

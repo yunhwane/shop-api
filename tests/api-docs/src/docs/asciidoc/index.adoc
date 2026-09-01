@@ -52,6 +52,12 @@ HTTP 상태만으로는 구분되지 않는 경우가 있다. `409` 하나에 �
 | `DUPLICATE_USER_ID` | 409 | 이미 쓰이는 아이디다
 | `DUPLICATE_EMAIL` | 409 | 이미 가입된 이메일이다
 | `VERIFICATION_ALREADY_USED` | 409 | 이미 가입에 사용된 인증이다
+| `INVALID_CREDENTIALS` | 401 | 아이디가 없거나 비밀번호가 틀렸다. 둘을 구분하지 않는다
+| `INVALID_REFRESH_TOKEN` | 401 | 리프레시 토큰이 없거나 기한이 지났다
+| `REFRESH_TOKEN_REUSED` | 401 | 이미 쓴 리프레시 토큰이 다시 왔다. 모든 기기에서 로그아웃된다
+| `UNAUTHENTICATED` | 401 | 액세스 토큰이 없거나 유효하지 않다
+| `ACCOUNT_SUSPENDED` | 403 | 정지된 계정이다
+| `ACCESS_DENIED` | 403 | 권한이 없다
 | `MAIL_SEND_FAILED` | 502 | 메일 게이트웨이 호출이 실패했다
 | `INTERNAL_ERROR` | 500 | 그 외
 |===
@@ -107,6 +113,51 @@ operation::email-verification-status[snippets='http-request,path-parameters,http
 
 operation::user-sign-up[snippets='http-request,request-fields,http-response,response-fields']
 
+[[auth]]
+== 로그인
+
+액세스 토큰은 30분짜리 JWT 이고, 리프레시 토큰은 14일짜리 불투명 난수다.
+인증이 필요한 요청에는 `Authorization: Bearer {accessToken}` 을 붙인다.
+
+[IMPORTANT]
+====
+**재발급할 때마다 리프레시 토큰이 바뀐다.** 응답의 새 값을 반드시 저장해야 한다.
+
+옛 값을 다시 보내면 유출로 간주해 그 사용자의 모든 리프레시 토큰이 폐기되고,
+정상 사용자까지 다시 로그인해야 한다. 회전만으로는 탈취를 막지 못하기 때문에
+둔 장치다 — 탈취범이 먼저 재발급을 받아 가면, 정상 사용자가 이미 소비된 토큰을
+들고 오게 되고 그 사실 자체가 유출의 신호다.
+====
+
+[[auth-login]]
+=== 로그인
+
+아이디가 없는 경우와 비밀번호가 틀린 경우를 구분하지 않는다. 요청 형식이 규칙을
+어겨도 `400` 이 아니라 같은 `401` 로 응답한다 — 상태 코드 차이만으로 아이디 규칙과
+존재 여부를 좁혀 갈 수 있기 때문이다.
+
+정지된 계정은 다르다. **비밀번호가 맞은 뒤에** `403 ACCOUNT_SUSPENDED` 로 알린다.
+
+operation::auth-login[snippets='http-request,request-fields,http-response,response-fields']
+
+[[auth-reissue]]
+=== 재발급
+
+operation::auth-reissue[snippets='http-request,request-fields,http-response,response-fields']
+
+[[auth-logout]]
+=== 로그아웃
+
+리프레시 토큰만 무효화한다. **이미 발급된 액세스 토큰은 만료 전까지 계속 유효하다.**
+없는 토큰을 보내도 성공으로 응답한다.
+
+operation::auth-logout[snippets='http-request,request-fields,http-response']
+
+[[auth-me]]
+=== 내 정보 조회
+
+operation::user-me[snippets='http-request,request-headers,http-response,response-fields']
+
 [[errors]]
 == 실패 응답 예시
 
@@ -122,3 +173,11 @@ operation::error-invalid-request[snippets='http-response,response-fields']
 === 아이디 중복
 
 operation::error-duplicate-user-id[snippets='http-response,response-fields']
+
+[[errors-unauthenticated]]
+=== 인증 필요
+
+토큰이 없는 경우와 유효하지 않은 경우를 구분하지 않는다. 공격자에게 다음 시도의
+힌트가 되고, 정상 클라이언트는 어느 쪽이든 다시 로그인하면 된다.
+
+operation::error-unauthenticated[snippets='http-response,response-fields']

@@ -21,6 +21,19 @@ enum class ErrorCode(
     VERIFICATION_ALREADY_USED("이미 사용된 인증입니다."),
     INVALID_VERIFICATION_TOKEN("유효하지 않은 인증 토큰입니다."),
 
+    /** 없는 아이디와 틀린 비밀번호를 구분하지 않는다(ADR 0008) */
+    INVALID_CREDENTIALS("아이디 또는 비밀번호가 올바르지 않습니다."),
+    ACCOUNT_SUSPENDED("정지된 계정입니다."),
+    ACCOUNT_WITHDRAWN("탈퇴한 계정입니다."),
+
+    INVALID_REFRESH_TOKEN("유효하지 않은 리프레시 토큰입니다."),
+
+    /** 이미 소비된 리프레시 토큰이 다시 왔다. 유출 신호로 보고 전부 무효화한다 */
+    REFRESH_TOKEN_REUSED("보안을 위해 모든 기기에서 로그아웃했습니다. 다시 로그인해 주세요."),
+
+    UNAUTHENTICATED("로그인이 필요합니다."),
+    ACCESS_DENIED("권한이 없습니다."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }

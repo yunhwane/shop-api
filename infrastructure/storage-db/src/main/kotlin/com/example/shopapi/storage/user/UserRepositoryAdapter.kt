@@ -30,6 +30,8 @@ internal class UserRepositoryAdapter(
             }
         }
 
+    override fun findById(id: Long): User? = jpaRepository.findById(id).orElse(null)?.toDomain()
+
     override fun findByUserId(userId: UserId): User? = jpaRepository.findByUserId(userId.value)?.toDomain()
 
     override fun existsByUserId(userId: UserId): Boolean = jpaRepository.existsByUserId(userId.value)

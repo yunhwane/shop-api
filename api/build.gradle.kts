@@ -19,5 +19,9 @@ dependencies {
     // 구현(JPA TransactionManager)은 storage-db 가 런타임에 제공하므로 애노테이션만 가져온다.
     implementation("org.springframework:spring-tx")
 
+    // 인증 필터 체인은 웹 관심사라 api 가 갖는다. 해싱과 토큰 서명 구현은
+    // 여전히 infrastructure:security 안에 있고 api 는 그것을 보지 못한다(ADR 0004).
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 }

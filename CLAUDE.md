@@ -59,7 +59,7 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 | `core:core-enum` | `com.example.shopapi.core.enums` | 전 계층 공유 enum/상수. 외부 의존성 없음 |
 | `core:core-domain` | `com.example.shopapi.core.domain` | 도메인 모델, 값 객체, 포트 |
 | `infrastructure:storage-db` | `com.example.shopapi.storage` | JPA 구현. 유니크 제약 위반을 도메인 예외로 번역 |
-| `infrastructure:security` | `com.example.shopapi.security` | bcrypt `PasswordEncoder`, `TokenGenerator` |
+| `infrastructure:security` | `com.example.shopapi.security` | bcrypt 해싱, JWT 서명, 토큰 생성 |
 | `infrastructure:client-mail` | `com.example.shopapi.client.mail` | `MailSender` 구현과 메일 템플릿 |
 | `api` | `com.example.shopapi.api` | 실행 모듈. controller / dto / 유스케이스 / 설정 |
 | `tests:architecture` | `com.example.shopapi.architecture` | ArchUnit 규칙 검증 전용. 프로덕션 코드 없음 |
@@ -100,6 +100,19 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 - 실패(4xx/5xx): `application/problem+json`, RFC 9457 `ProblemDetail`. `GlobalExceptionHandler` 가 전담한다.
 
 에러를 추가하려면 `core-enum` 의 `ErrorCode` 와 `api` 의 `ErrorCodeHttpStatus` 매핑표를 **둘 다** 고친다. 상태 코드가 `api` 에 있는 이유는 409 냐 400 이냐가 HTTP 의 관심사이기 때문이다. 매핑을 빠뜨리면 조용히 500 으로 나가므로 `ErrorCodeHttpStatusTest` 가 누락을 잡는다.
+
+### 인증
+
+액세스 토큰(JWT)과 회전하는 리프레시 토큰을 쓴다(ADR 0008). 서명과 해싱은
+`infrastructure:security` 안에 있고 `api` 는 포트만 본다. 필터 체인은 웹 관심사라 `api` 에 둔다.
+
+인증 실패는 Spring Security 의 필터 단계에서 일어나 기본값으로는 `@RestControllerAdvice` 를
+타지 않는다. `AuthenticationEntryPoint` 가 `HandlerExceptionResolver` 로 넘겨 나머지와 같은
+ProblemDetail 로 만든다. 이 배선을 빼면 인증 실패 응답만 계약을 벗어난다.
+
+**트랜잭션 롤백이 보안 조치를 지울 수 있다.** 리프레시 토큰 재사용을 탐지해 토큰을 폐기하고
+예외를 던지면, 그 예외가 폐기까지 롤백시킨다. `noRollbackFor` 로 막아 두었다. 401 은 나가므로
+테스트가 초록불이기 쉽다 — 폐기가 실제로 남았는지까지 확인해야 한다.
 
 ### API 문서
 

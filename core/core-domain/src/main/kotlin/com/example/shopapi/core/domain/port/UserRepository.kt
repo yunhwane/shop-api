@@ -15,6 +15,8 @@ import com.example.shopapi.core.domain.user.UserId
 interface UserRepository {
     fun save(user: User): User
 
+    fun findById(id: Long): User?
+
     fun findByUserId(userId: UserId): User?
 
     fun existsByUserId(userId: UserId): Boolean

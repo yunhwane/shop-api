@@ -1,6 +1,7 @@
 package com.example.shopapi.api.user.dto
 
 import com.example.shopapi.core.domain.user.User
+import com.example.shopapi.core.enums.UserStatus
 
 /**
  * 회원가입 요청.
@@ -25,6 +26,23 @@ data class SignUpResponse(
                 id = requireNotNull(user.id) { "저장된 회원이어야 한다" },
                 userId = user.userId.value,
                 email = user.email.value,
+            )
+    }
+}
+
+data class MeResponse(
+    val id: Long,
+    val userId: String,
+    val email: String,
+    val status: UserStatus,
+) {
+    companion object {
+        fun from(user: User): MeResponse =
+            MeResponse(
+                id = requireNotNull(user.id) { "저장된 회원이어야 한다" },
+                userId = user.userId.value,
+                email = user.email.value,
+                status = user.status,
             )
     }
 }

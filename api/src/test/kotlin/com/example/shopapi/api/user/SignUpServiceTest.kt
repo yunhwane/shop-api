@@ -160,6 +160,8 @@ private class FakeUserRepository : UserRepository {
         return saved
     }
 
+    override fun findById(id: Long): User? = stored.find { it.id == id }
+
     override fun findByUserId(userId: UserId): User? = stored.find { it.userId == userId }
 
     override fun existsByUserId(userId: UserId): Boolean = findByUserId(userId) != null
