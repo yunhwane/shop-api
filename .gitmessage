@@ -1,0 +1,20 @@
+# <type>(<scope>): <subject>          ← 50자 이내, 마침표 없이, 명령형
+#
+# <body>                              ← 무엇보다 '왜'. 한 줄 72자 이내
+#
+# <footer>                            ← Closes #42 / BREAKING CHANGE: ...
+#
+# ── type ──────────────────────────────────────────────
+# feat     새 기능
+# fix      버그 수정
+# refactor 동작 변화 없는 코드 개선
+# perf     성능 개선
+# test     테스트 추가/수정
+# docs     문서만 변경
+# style    포맷팅 등 동작에 영향 없는 변경
+# build    빌드 스크립트, 의존성, Gradle 설정
+# ci       CI 설정
+# chore    그 외 잡무
+#
+# ── scope ─────────────────────────────────────────────
+# core-enum / core-domain / storage-db / api / build / docs
