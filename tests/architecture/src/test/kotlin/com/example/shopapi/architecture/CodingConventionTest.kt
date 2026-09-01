@@ -3,6 +3,8 @@ package com.example.shopapi.architecture
 import com.example.shopapi.architecture.Packages.API
 import com.example.shopapi.architecture.Packages.ROOT
 import com.example.shopapi.architecture.Packages.STORAGE
+import com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage
+import com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEndingWith
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -72,14 +74,20 @@ class CodingConventionTest {
             .should()
             .resideInAPackage(STORAGE)
 
+    /**
+     * 대상을 우리 패키지로 좁힌 이유가 있다. `@RestController` **애노테이션 클래스의 이름 자체가**
+     * `Controller` 로 끝나서, 이름만으로 판별하면 모든 컨트롤러가 자기 애노테이션에 의존한다는
+     * 이유로 위반이 된다. 컨트롤러가 없던 동안에는 검사 대상이 0건이라 드러나지 않았다.
+     */
     @ArchTest
     val `Controller 는 다른 Controller 를 호출하지 않는다`: ArchRule =
         noClasses()
             .that()
-            .haveSimpleNameEndingWith("Controller")
+            .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
             .should()
-            .dependOnClassesThat()
-            .haveSimpleNameEndingWith("Controller")
+            .dependOnClassesThat(
+                simpleNameEndingWith("Controller").and(resideInAPackage(API)),
+            ).because("컨트롤러끼리 호출하면 하나의 요청 흐름이 두 곳으로 갈라진다")
 
     @ArchTest
     val `public 가변 필드를 두지 않는다`: ArchRule =
@@ -91,4 +99,7 @@ class CodingConventionTest {
             .should()
             .beFinal()
             .because("외부에서 상태를 직접 바꿀 수 없어야 한다")
+            // Kotlin 프로퍼티는 private 필드 + 접근자로 컴파일되므로 검사 대상이 0건이다.
+            // 앞으로 들어올 Java 코드나 @JvmField 를 막는 예방 규칙이라 빈 상태를 허용한다.
+            .allowEmptyShould(true)
 }
