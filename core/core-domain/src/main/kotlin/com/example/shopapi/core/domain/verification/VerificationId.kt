@@ -1,6 +1,7 @@
 package com.example.shopapi.core.domain.verification
 
 import com.example.shopapi.core.domain.common.InvalidValueException
+import com.example.shopapi.core.domain.common.reconstituting
 
 /**
  * 인증 절차의 공개 식별자. 인증을 요청한 클라이언트가 보관한다.
@@ -22,5 +23,8 @@ value class VerificationId private constructor(
             }
             return VerificationId(trimmed)
         }
+
+        /** 저장소에서 읽어온 값을 복원한다. storage 어댑터만 호출한다 */
+        fun reconstitute(stored: String): VerificationId = reconstituting("verificationId") { of(stored) }
     }
 }

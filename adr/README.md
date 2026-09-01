@@ -13,6 +13,7 @@
 | [0004](0004-infrastructure-adapter-modules.md) | 메일과 암호화 어댑터를 별도 인프라 모듈로 분리한다 | 수락됨 |
 | [0005](0005-uniqueness-and-email-enumeration.md) | 중복은 DB 제약으로 막고, 가입된 이메일은 409 로 알린다 | 수락됨 |
 | [0006](0006-api-response-contract.md) | 성공은 공통 봉투로, 실패는 ProblemDetail 로 응답한다 | 수락됨 |
+| [0007](0007-reconstitution-vs-input-validation.md) | 저장된 값의 복원을 입력 검증과 분리한다 | 수락됨 |
 
 ## 설계 문서
 

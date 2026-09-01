@@ -1,6 +1,7 @@
 package com.example.shopapi.core.domain.verification
 
 import com.example.shopapi.core.domain.common.InvalidValueException
+import com.example.shopapi.core.domain.common.reconstituting
 
 /**
  * 인증 메일 링크에만 담기는 비밀 값. 응답 본문에 절대 노출하지 않는다.
@@ -22,5 +23,8 @@ value class VerificationToken private constructor(
             }
             return VerificationToken(trimmed)
         }
+
+        /** 저장소에서 읽어온 값을 복원한다. storage 어댑터만 호출한다 */
+        fun reconstitute(stored: String): VerificationToken = reconstituting("token") { of(stored) }
     }
 }

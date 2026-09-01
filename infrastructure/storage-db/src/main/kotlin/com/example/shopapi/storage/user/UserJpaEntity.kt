@@ -50,9 +50,9 @@ class UserJpaEntity(
     fun toDomain(): User =
         User(
             id = id,
-            userId = UserId.of(userId),
-            email = Email.of(email),
-            password = EncodedPassword.of(password),
+            userId = UserId.reconstitute(userId),
+            email = Email.reconstitute(email),
+            password = EncodedPassword.reconstitute(password),
             status = status,
             createdAt = createdAt,
         )

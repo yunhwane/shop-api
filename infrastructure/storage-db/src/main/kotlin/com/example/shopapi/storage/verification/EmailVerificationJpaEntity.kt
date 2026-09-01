@@ -55,9 +55,9 @@ class EmailVerificationJpaEntity(
     fun toDomain(): EmailVerification =
         EmailVerification(
             id = id,
-            verificationId = VerificationId.of(verificationId),
-            token = VerificationToken.of(token),
-            email = Email.of(email),
+            verificationId = VerificationId.reconstitute(verificationId),
+            token = VerificationToken.reconstitute(token),
+            email = Email.reconstitute(email),
             expiresAt = expiresAt,
             verifiedAt = verifiedAt,
             consumedAt = consumedAt,
