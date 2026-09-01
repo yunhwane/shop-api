@@ -1,5 +1,7 @@
 package com.example.shopapi.core.domain.user
 
+import com.example.shopapi.core.domain.auth.AccountSuspendedException
+import com.example.shopapi.core.domain.auth.AccountWithdrawnException
 import com.example.shopapi.core.domain.common.Email
 import com.example.shopapi.core.enums.UserStatus
 import java.time.Instant
@@ -18,6 +20,20 @@ class User(
     val status: UserStatus,
     val createdAt: Instant,
 ) {
+    /**
+     * 로그인할 수 있는 상태인지 확인한다.
+     *
+     * 비밀번호 검증에 **성공한 뒤에** 부른다. 먼저 부르면 비밀번호를 모르는 사람에게도
+     * 계정의 존재와 상태가 드러난다(ADR 0008).
+     */
+    fun ensureCanLogIn() {
+        when (status) {
+            UserStatus.ACTIVE -> Unit
+            UserStatus.SUSPENDED -> throw AccountSuspendedException()
+            UserStatus.WITHDRAWN -> throw AccountWithdrawnException()
+        }
+    }
+
     override fun toString(): String = "User(id=$id, userId=$userId, status=$status)"
 
     companion object {

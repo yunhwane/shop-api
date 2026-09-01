@@ -1,13 +1,14 @@
 # 회원 도메인 설계
 
 - 최종 갱신: 2026-09-01
-- 범위: **회원가입**. 로그인과 회원 정보 조회는 이후 문서에서 다룬다.
+- 범위: **회원가입**과 **로그인**.
 - 근거가 되는 결정: [0001](../0001-email-verification-timing.md) ·
   [0002](../0002-email-verification-token-design.md) ·
   [0003](../0003-application-layer-placement.md) ·
   [0004](../0004-infrastructure-adapter-modules.md) ·
   [0005](../0005-uniqueness-and-email-enumeration.md) ·
-  [0006](../0006-api-response-contract.md)
+  [0006](../0006-api-response-contract.md) ·
+  [0008](../0008-login-token-strategy.md)
 
 ## 1. 전체 흐름
 
@@ -426,10 +427,56 @@ JPA 엔티티는 도메인 모델과 별개 클래스이고, 어댑터가 양방
 6. 아키텍처 테스트 갱신 — 신규 모듈 등록, 임시 완화 되돌리기
    (`failOnEmptyShould=true`, `optionalLayer` → `layer`)
 
+## 8-1. 로그인
+
+액세스 토큰(JWT, 30분)과 리프레시 토큰(불투명 난수, 14일)을 쓴다. 근거는
+[0008](../0008-login-token-strategy.md).
+
+```
+POST /api/v1/auth/login    { userId, password }
+  -> 200 { accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt }
+  -> 401 INVALID_CREDENTIALS   아이디 없음 / 비밀번호 틀림 / 형식 위반 모두 같은 응답
+  -> 403 ACCOUNT_SUSPENDED     비밀번호가 맞은 뒤에만 알려준다
+
+POST /api/v1/auth/reissue  { refreshToken }
+  -> 200 새 토큰 쌍. 리프레시 토큰도 함께 바뀐다
+  -> 401 INVALID_REFRESH_TOKEN / REFRESH_TOKEN_REUSED
+
+POST /api/v1/auth/logout   { refreshToken }
+  -> 204. 없는 토큰이어도 성공으로 둔다
+
+GET  /api/v1/users/me      Authorization: Bearer ...
+  -> 200 { id, userId, email, status }
+  -> 401 UNAUTHENTICATED
+```
+
+### 저장 구조
+
+```
+refresh_tokens
+  id, user_id, token_hash(UNIQUE, SHA-256), expires_at, used_at, created_at
+  INDEX (user_id)
+```
+
+원문이 아니라 해시를 저장한다. `used_at` 이 회전과 재사용 탐지의 근거다.
+
+### 인증 배선
+
+```
+JwtAuthenticationFilter   Bearer 토큰 -> AuthenticatedUser(id) 를 SecurityContext 에
+SecurityConfig            stateless, CSRF 끔(쿠키를 쓰지 않는다), 가입/인증/로그인은 permitAll
+AuthenticationEntryPoint  HandlerExceptionResolver 로 넘겨 ProblemDetail 로 만든다
+```
+
+마지막 줄이 중요하다. Spring Security 는 필터 단계에서 실패하므로 기본값으로는
+`@RestControllerAdvice` 를 타지 않고, 인증 실패 응답만 [0006](../0006-api-response-contract.md)
+의 계약을 벗어난다.
+
 ## 9. 이번 범위에 넣지 않는 것
 
 - **호출 제한(rate limit)** — 인증 요청 엔드포인트. [0005](../0005-uniqueness-and-email-enumeration.md) 의 열거 완화책이다. 별도 작업.
 - **만료 인증 레코드 정리 배치** — 테이블이 무한히 자란다. 운영 전에 필요하다.
-- 로그인 / 회원 정보 조회
 - 비밀번호 재설정 (인증 토큰 구조를 재사용할 수 있다)
+- 만료·소비된 리프레시 토큰 정리 배치
+- 액세스 토큰의 즉시 무효화. 지금은 로그아웃 후에도 만료까지 유효하다
 - 탈퇴 회원의 `userId` / `email` 재사용 정책

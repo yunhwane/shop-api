@@ -10,5 +10,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.security:spring-security-crypto")
 
+    // JWT 서명과 검증. Spring Security BOM 이 관리한다.
+    implementation("org.springframework.security:spring-security-oauth2-jose")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
