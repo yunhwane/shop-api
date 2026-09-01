@@ -17,12 +17,18 @@
 | [0008](0008-login-token-strategy.md) | 로그인은 JWT 액세스 토큰과 회전하는 리프레시 토큰으로 유지한다 | 수락됨 |
 | [0009](0009-abuse-rate-limiting.md) | 남용 방지 호출 제한은 인메모리 고정 창으로 시작한다 | 수락됨 |
 | [0010](0010-expired-data-retention.md) | 만료된 인증과 토큰은 배치로 지운다 | 수락됨 |
+| [0011](0011-single-sellable-unit.md) | 상품은 단일 판매 단위로 시작하고 옵션을 두지 않는다 | 수락됨 |
+| [0012](0012-money-representation.md) | 금액은 원 단위 정수로 다루고 통화를 두지 않는다 | 수락됨 |
+| [0013](0013-product-category-as-enum.md) | 상품 카테고리는 코드 enum 으로 시작한다 | 수락됨 |
+| [0014](0014-stock-and-oversell.md) | 재고는 상품이 들고, 차감은 조건부 원자 갱신으로만 한다 | 수락됨 |
+| [0015](0015-product-list-pagination.md) | 상품 목록은 커서 페이지네이션으로 낸다 | 수락됨 |
 
 ## 설계 문서
 
 결정이 아니라 "지금 구조가 어떻게 생겼는가"를 적는다. 코드가 바뀌면 같이 고친다.
 
 - [회원 도메인](design/member-domain.md)
+- [상품 도메인](design/product-domain.md)
 
 ## 작성 규칙
 

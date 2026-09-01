@@ -37,6 +37,9 @@ class SecurityConfig(
                     .permitAll()
                     .requestMatchers("/api/v1/email-verifications/**", "/api/v1/auth/**")
                     .permitAll()
+                    // 카탈로그는 공개다. 쓰기 엔드포인트는 존재하지 않으므로 GET 만 열어도 충분하다.
+                    .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*")
+                    .permitAll()
                     .anyRequest()
                     .authenticated()
             }.exceptionHandling {
