@@ -5,4 +5,5 @@ include(
     "core:core-domain",
     "infrastructure:storage-db",
     "api",
+    "tests:architecture",
 )
