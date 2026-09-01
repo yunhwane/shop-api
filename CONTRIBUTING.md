@@ -122,9 +122,36 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 - `api` 는 `storage-db` 를 `runtimeOnly` 로만 참조한다. 구현체를 컴파일 타임에 import 할 수 없다.
 - 새 모듈을 추가하면 `buildSrc` 의 `shop.kotlin-library` 컨벤션을 적용한다.
 
+## 코드 스타일 — ktlint
+
+포맷은 [ktlint](https://pinterest.github.io/ktlint/) 로 강제합니다. 규칙은
+저장소 루트의 `.editorconfig` 하나에서 관리하며, IDE 와 ktlint 가 같은 파일을 읽습니다.
+
+```bash
+./gradlew ktlintCheck    # 검사만
+./gradlew ktlintFormat   # 자동 수정
+```
+
+- 코드 스타일은 `ktlint_official`, 최대 줄 길이 120자, 와일드카드 임포트 금지입니다.
+- `./gradlew build` 에 `ktlintCheck` 가 포함되어 있습니다. 따로 실행하지 않아도 빌드가 잡아냅니다.
+- 대부분의 위반은 `ktlintFormat` 으로 자동 수정됩니다. 와일드카드 임포트처럼
+  자동 수정이 안 되는 항목은 직접 고쳐야 합니다.
+- 린터 버전은 `gradle/libs.versions.toml` 의 `ktlint` 한 줄로 관리합니다.
+
+## CI
+
+`.github/workflows/ci.yml` 이 `main` 으로 향하는 PR 과 `main` push 에서 돕니다.
+
+| 단계 | 명령 |
+|---|---|
+| Lint | `./gradlew ktlintCheck` |
+| Test | `./gradlew build` |
+
+실패하면 테스트/ktlint 리포트가 아티팩트로 업로드됩니다.
+
 ## 로컬 검증
 
-PR 을 올리기 전에 아래가 통과해야 합니다.
+PR 을 올리기 전에 아래가 통과해야 합니다. CI 와 같은 명령입니다.
 
 ```bash
 ./gradlew build

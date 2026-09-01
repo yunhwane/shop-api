@@ -9,6 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.kotlin.plugin.spring")
     id("io.spring.dependency-management")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
 group = "com.example"
@@ -26,6 +27,18 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
+}
+
+// 린터 버전은 버전 카탈로그 한 곳에서만 관리한다.
+// 컨벤션 플러그인에서는 libs.* 접근자를 못 쓰므로 런타임 조회로 가져온다.
+ktlint {
+    version.set(
+        extensions.getByType<VersionCatalogsExtension>()
+            .named("libs")
+            .findVersion("ktlint")
+            .get()
+            .requiredVersion,
+    )
 }
 
 // Boot BOM 만 import 한다. 각 모듈은 의존성을 버전 없이 선언한다.
