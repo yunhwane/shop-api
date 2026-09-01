@@ -2,6 +2,9 @@
 kotlin = "2.3.21"
 spring-boot = "4.1.1"
 spring-dependency-management = "1.1.7"
+# ktlint-gradle = Gradle 플러그인 버전, ktlint = 실제 린터 툴 버전 (서로 다름)
+ktlint-gradle = "14.2.0"
+ktlint = "1.8.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -9,3 +12,5 @@ kotlin-allopen-plugin = { module = "org.jetbrains.kotlin:kotlin-allopen", versio
 kotlin-noarg-plugin = { module = "org.jetbrains.kotlin:kotlin-noarg", version.ref = "kotlin" }
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
 spring-dependency-management-plugin = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "spring-dependency-management" }
+# Maven Central 에 없고 Gradle Plugin Portal 에만 있다.
+ktlint-gradle-plugin = { module = "org.jlleitschuh.gradle.ktlint:org.jlleitschuh.gradle.ktlint.gradle.plugin", version.ref = "ktlint-gradle" }

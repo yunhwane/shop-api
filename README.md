@@ -11,7 +11,8 @@ Kotlin + Spring Boot 멀티모듈 커머스 API.
 
 ```bash
 ./gradlew :api:bootRun     # 애플리케이션 실행
-./gradlew build            # 전체 빌드 + 테스트
+./gradlew build            # 전체 빌드 + 테스트 + 린트
+./gradlew ktlintFormat     # 코드 포맷 자동 수정
 ```
 
 ## 모듈 구조
