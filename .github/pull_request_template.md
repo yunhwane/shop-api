@@ -15,13 +15,17 @@
 
 ## 영향 범위
 
-<!-- 해당하는 모듈에 체크 -->
+<!-- 해당하는 모듈에 체크. 모듈을 새로 만들었다면 이 목록에도 추가해 주세요. -->
 
 - [ ] `core:core-enum`
 - [ ] `core:core-domain`
 - [ ] `infrastructure:storage-db`
+- [ ] `infrastructure:security`
+- [ ] `infrastructure:client-mail`
 - [ ] `api`
-- [ ] 빌드 설정 (`buildSrc`, `gradle/libs.versions.toml`)
+- [ ] `tests:architecture`
+- [ ] 빌드 설정 (`buildSrc`, `settings.gradle.kts`, `gradle/libs.versions.toml`)
+- [ ] 문서 (`adr/`, `README.md`, `CLAUDE.md`)
 
 ## 확인 방법
 

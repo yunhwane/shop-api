@@ -8,18 +8,25 @@ package com.example.shopapi.architecture
 object Packages {
     const val ROOT = "com.example.shopapi"
 
-    /** core:core-enum */
     const val CORE_ENUM = "$ROOT.core.enums.."
-
-    /** core:core-domain */
     const val CORE_DOMAIN = "$ROOT.core.domain.."
-
-    /** core 전체 */
     const val CORE = "$ROOT.core.."
+    const val API = "$ROOT.api.."
 
     /** infrastructure:storage-db */
     const val STORAGE = "$ROOT.storage.."
 
-    /** api */
-    const val API = "$ROOT.api.."
+    /** infrastructure:security */
+    const val SECURITY = "$ROOT.security.."
+
+    /** infrastructure:client-mail */
+    const val CLIENT_MAIL = "$ROOT.client.mail.."
+
+    /**
+     * 인프라 어댑터 전체.
+     *
+     * api 는 이들 중 어느 것도 컴파일 타임에 참조하지 않는다. 새 어댑터 모듈을 만들면
+     * 여기에 추가해야 규칙이 함께 걸린다.
+     */
+    val INFRASTRUCTURE = arrayOf(STORAGE, SECURITY, CLIENT_MAIL)
 }
