@@ -37,6 +37,14 @@ enum class ErrorCode(
     /** 남용 방지 호출 제한을 넘겼다(ADR 0009) */
     TOO_MANY_REQUESTS("요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요."),
 
+    PRODUCT_NOT_FOUND("상품을 찾을 수 없습니다."),
+
+    /** 판매 중이 아닌 상품에 판매를 전제한 요청이 들어왔다 */
+    PRODUCT_NOT_ON_SALE("판매 중인 상품이 아닙니다."),
+
+    /** 단종은 종단 상태다. 되돌릴 수 없다(ADR 0011) */
+    PRODUCT_DISCONTINUED("단종된 상품입니다."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }
