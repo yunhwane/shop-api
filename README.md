@@ -13,6 +13,8 @@ Kotlin + Spring Boot 멀티모듈 커머스 API.
 ./gradlew :api:bootRun     # 애플리케이션 실행
 ./gradlew build            # 전체 빌드 + 테스트 + 린트
 ./gradlew ktlintFormat     # 코드 포맷 자동 수정
+
+./gradlew :tests:architecture:test   # 아키텍처 규칙만 검증
 ```
 
 ## 모듈 구조
@@ -29,8 +31,14 @@ shop-api/
 ├─ infrastructure/
 │  └─ storage-db/                   core-domain 포트의 JPA 구현
 │
-└─ api/                             실행 모듈. controller / dto / 설정
+├─ api/                             실행 모듈. controller / dto / 설정
+│
+└─ tests/
+   └─ architecture/                 ArchUnit 아키텍처 규칙 검증 (테스트 전용)
 ```
+
+`tests/*` 는 프로덕션 코드가 없는 검증 전용 모듈입니다. 이 모듈들만 예외적으로
+전 모듈을 참조하며, 반대로 이들을 참조하는 곳은 없습니다.
 
 ### 의존 방향
 

@@ -5,6 +5,7 @@ spring-dependency-management = "1.1.7"
 # ktlint-gradle = Gradle 플러그인 버전, ktlint = 실제 린터 툴 버전 (서로 다름)
 ktlint-gradle = "14.2.0"
 ktlint = "1.8.0"
+archunit = "1.5.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -14,3 +15,6 @@ spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gra
 spring-dependency-management-plugin = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "spring-dependency-management" }
 # Maven Central 에 없고 Gradle Plugin Portal 에만 있다.
 ktlint-gradle-plugin = { module = "org.jlleitschuh.gradle.ktlint:org.jlleitschuh.gradle.ktlint.gradle.plugin", version.ref = "ktlint-gradle" }
+
+# 아키텍처 테스트 (Spring BOM 이 관리하지 않아 버전을 직접 지정)
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

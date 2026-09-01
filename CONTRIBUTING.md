@@ -149,6 +149,32 @@ api ──implementation──> core:core-domain ──api──> core:core-enum
 
 실패하면 테스트/ktlint 리포트가 아티팩트로 업로드됩니다.
 
+## 아키텍처 테스트
+
+모듈 의존 규칙은 문서가 아니라 [ArchUnit](https://www.archunit.org/) 테스트로 강제합니다.
+`tests/architecture` 모듈에 있고 `./gradlew build` 에 포함됩니다.
+
+```bash
+./gradlew :tests:architecture:test
+```
+
+| 파일 | 검사 내용 |
+|---|---|
+| `ModuleDependencyTest` | 모듈 경계, 의존 방향, 계층 구조, 순환 의존 |
+| `CodingConventionTest` | 필드 주입 금지, Controller/Entity 위치, 네이밍 |
+
+규칙을 추가하려면 위 두 파일에 `@ArchTest val` 을 하나 더 넣으면 됩니다.
+패키지 상수는 `Packages.kt` 한 곳에서 관리합니다.
+
+### 지금은 느슨하게 열어둔 것
+
+모듈이 아직 비어 있어 두 군데를 완화해 뒀습니다. **각 모듈에 코드가 채워지면 되돌려야 합니다.**
+
+- `archunit.properties` 의 `archRule.failOnEmptyShould=false`
+  → `true` 로 바꾸면 "검사 대상이 0건인 규칙"을 실패로 잡습니다.
+- `ModuleDependencyTest` 의 계층 정의가 `optionalLayer`
+  → `layer` 로 바꾸면 빈 계층을 실패로 잡습니다.
+
 ## 로컬 검증
 
 PR 을 올리기 전에 아래가 통과해야 합니다. CI 와 같은 명령입니다.

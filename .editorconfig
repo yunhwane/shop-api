@@ -17,6 +17,12 @@ ktlint_standard_no-wildcard-imports = enabled
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
 
+# 테스트에서는 백틱으로 감싼 서술형 이름을 허용한다.
+# `주문을 취소하면 상태가 CANCELED 가 된다` 처럼 읽는 편이 낫다.
+[**/src/test/**/*.kt]
+ktlint_standard_property-naming = disabled
+ktlint_standard_function-naming = disabled
+
 [*.{yml,yaml,json,toml}]
 indent_size = 2
 
