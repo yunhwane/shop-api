@@ -185,9 +185,9 @@ private class FakeEmailVerificationRepository : EmailVerificationRepository {
         stored.values.removeIf { it.email == email && it.verifiedAt == null }
     }
 
-    override fun deleteExpiredBefore(now: Instant): Int {
+    override fun deleteUnusableAsOf(now: Instant): Int {
         val before = stored.size
-        stored.values.removeIf { now >= it.expiresAt }
+        stored.values.removeIf { now >= it.expiresAt && it.verifiedAt == null }
         return before - stored.size
     }
 }

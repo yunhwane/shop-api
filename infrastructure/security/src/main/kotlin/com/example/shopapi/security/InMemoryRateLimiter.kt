@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * 프로세스 메모리에 두는 고정 창 카운터(ADR 0009).
@@ -18,31 +19,14 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 internal class InMemoryRateLimiter : RateLimiter {
     private val windows = ConcurrentHashMap<String, Window>()
-
-    override fun check(
-        key: String,
-        policy: RateLimitPolicy,
-        now: Instant,
-    ): RateLimitResult {
-        val window = windows[key]
-        if (window == null || now >= window.expiresAt) return RateLimitResult.Allowed
-
-        // 부등호가 tryConsume 과 다르다. 이쪽은 "예산이 남았는가"를 묻고,
-        // 그쪽은 "방금 소비한 이 호출이 한도 안이었는가"를 묻는다.
-        // 같은 비교를 쓰면 한도가 3일 때 네 번째 시도까지 통과한다.
-        return if (window.count < policy.limit) {
-            RateLimitResult.Allowed
-        } else {
-            RateLimitResult.Rejected(Duration.between(now, window.expiresAt))
-        }
-    }
+    private val lastPurgedAt = AtomicReference(Instant.EPOCH)
 
     override fun tryConsume(
         key: String,
         policy: RateLimitPolicy,
         now: Instant,
     ): RateLimitResult {
-        purgeIfCrowded(now)
+        purgeIfDue(now)
 
         // compute 는 키 단위로 원자적이다. 읽고 더하는 식으로 쓰면 동시 요청이 같은 값을
         // 읽어 한도를 넘겨 통과한다.
@@ -62,14 +46,33 @@ internal class InMemoryRateLimiter : RateLimiter {
         }
     }
 
+    override fun refund(
+        key: String,
+        now: Instant,
+    ) {
+        windows.computeIfPresent(key) { _, existing ->
+            // 창이 이미 바뀌었다면 되돌릴 대상이 없다. 새 창의 카운트를 깎으면 안 된다.
+            if (now >= existing.expiresAt) {
+                existing
+            } else {
+                Window(expiresAt = existing.expiresAt, count = (existing.count - 1).coerceAtLeast(0))
+            }
+        }
+    }
+
     /**
-     * 키가 무한히 쌓이는 것을 막는다. 창이 끝난 항목은 더 이상 아무 의미가 없다.
+     * 끝난 창을 치운다.
      *
-     * 주기적인 청소 대신 크기가 커졌을 때만 훑는다. 이 클래스가 스레드나 스케줄러를
-     * 들고 있지 않게 하려는 것이다.
+     * 크기만 보고 훑으면 **공격 중에 가장 비싸진다.** 창이 한 시간짜리라 항목이 오래
+     * 살아 있어서, 서로 다른 IP 가 임계치를 넘기면 매 요청이 지도 전체를 훑으면서
+     * 아무것도 지우지 못한다. 열거를 막으려는 장치가 열거에 부하로 협조하는 셈이다.
+     * 그래서 빈도를 시간으로 묶는다.
      */
-    private fun purgeIfCrowded(now: Instant) {
-        if (windows.size < PURGE_THRESHOLD) return
+    private fun purgeIfDue(now: Instant) {
+        val last = lastPurgedAt.get()
+        if (now < last + PURGE_INTERVAL) return
+        if (!lastPurgedAt.compareAndSet(last, now)) return
+
         windows.entries.removeIf { now >= it.value.expiresAt }
     }
 
@@ -79,6 +82,6 @@ internal class InMemoryRateLimiter : RateLimiter {
     )
 
     private companion object {
-        const val PURGE_THRESHOLD = 10_000
+        val PURGE_INTERVAL: Duration = Duration.ofMinutes(1)
     }
 }

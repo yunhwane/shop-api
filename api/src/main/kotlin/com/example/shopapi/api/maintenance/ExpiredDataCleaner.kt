@@ -37,7 +37,7 @@ class ExpiredDataCleaner(
     )
     fun clean() {
         val now = timeProvider.now()
-        val removedVerifications = verifications.deleteExpiredBefore(now)
+        val removedVerifications = verifications.deleteUnusableAsOf(now)
         val removedTokens = refreshTokens.deleteExpiredBefore(now)
 
         if (removedVerifications > 0 || removedTokens > 0) {

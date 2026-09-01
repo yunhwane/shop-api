@@ -49,6 +49,43 @@ class ExpiredDataCleanupTest(
     }
 
     /**
+     * 인증에는 기한이 둘이다. 링크 기한이 지나도 인증을 마친 건은 `verifiedAt + 30분` 까지
+     * 가입에 쓸 수 있다(ADR 0002). 링크 기한만 보고 지우면 **10:29 에 인증한 사용자가
+     * 10:40 에 가입하려 할 때 404 를 받는다.** 배치가 도는 시각에 따라 갈리므로
+     * "가끔 가입이 안 된다"로 나타난다.
+     */
+    @Test
+    fun `링크 기한은 지났지만 인증을 마쳐 아직 가입할 수 있는 건은 남긴다`() {
+        val stillUsable =
+            saveVerification(
+                token = "cleanup-verified-usable",
+                expiresAt = Instant.now().minusSeconds(60),
+                verifiedAt = Instant.now().minusSeconds(30),
+            )
+
+        cleaner.clean()
+
+        assertNotNull(
+            verifications.findByToken(stillUsable),
+            "링크 기한이 지나도 소비 기한이 남았다면 가입에 쓸 수 있어야 한다",
+        )
+    }
+
+    @Test
+    fun `소비 기한까지 지난 인증은 지운다`() {
+        val past =
+            saveVerification(
+                token = "cleanup-verified-stale",
+                expiresAt = longAgo,
+                verifiedAt = longAgo,
+            )
+
+        cleaner.clean()
+
+        assertNull(verifications.findByToken(past))
+    }
+
+    /**
      * 소비된 행을 회전 직후에 지우면 재사용 탐지가 무너진다. 탈취범이 옛 토큰을 제시했을 때
      * "재사용"이 아니라 "없는 토큰"으로 보여 유출 신호를 놓친다(ADR 0008).
      *
@@ -95,6 +132,7 @@ class ExpiredDataCleanupTest(
     private fun saveVerification(
         token: String,
         expiresAt: Instant,
+        verifiedAt: Instant? = null,
     ): VerificationToken {
         val verificationToken = VerificationToken.of(token)
         verifications.save(
@@ -104,7 +142,7 @@ class ExpiredDataCleanupTest(
                 token = verificationToken,
                 email = Email.of("$token@example.com"),
                 expiresAt = expiresAt,
-                verifiedAt = null,
+                verifiedAt = verifiedAt,
                 consumedAt = null,
                 createdAt = longAgo,
             ),

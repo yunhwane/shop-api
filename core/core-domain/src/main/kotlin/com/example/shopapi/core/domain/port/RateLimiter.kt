@@ -6,30 +6,26 @@ import java.time.Instant
 /**
  * 남용 방지 호출 제한(ADR 0009).
  *
- * 두 메서드가 필요한 이유는 로그인 때문이다. 로그인은 **실패만** 세야 해서, 요청을 시작할 때는
- * [check] 로 한도만 보고(성공할 요청의 예산을 깎지 않는다), 실패한 뒤에 [tryConsume] 로 센다.
- * 시작 시점에 막을 수 있어야 이미 한도를 넘긴 요청에 bcrypt 비용을 치르지 않는다.
+ * 검사와 소비가 한 번에 일어나야 한다. "남았는지 보고 나중에 센다"로 나누면 동시에 들어온
+ * 요청이 모두 같은 잔량을 보고 전부 통과한다. 한도가 20이어도 500개를 동시에 던지면
+ * 500개가 지나가고, 한도가 막으려던 비용도 그대로 발생한다.
+ *
+ * 그래서 시작 시점에 [tryConsume] 로 먼저 세고, 세지 않아도 될 결과였다면 [refund] 로
+ * 되돌린다. 로그인이 실패만 세는 것은 이 방식으로 표현한다.
  */
 interface RateLimiter {
-    /**
-     * 소비하지 않고 **예산이 남았는지**만 본다.
-     *
-     * [tryConsume] 과 판정 기준이 다르다. 그쪽은 방금 소비한 호출이 한도 안이었는지를
-     * 보고, 이쪽은 다음 호출을 받을 여유가 있는지를 본다. 한도가 3이면 3회까지 허용하고
-     * 4회째 요청은 시작 전에 막힌다.
-     */
-    fun check(
-        key: String,
-        policy: RateLimitPolicy,
-        now: Instant,
-    ): RateLimitResult
-
     /** 한 번 소비하고 그 결과를 알려준다. 한도를 넘겨도 소비는 기록한다 */
     fun tryConsume(
         key: String,
         policy: RateLimitPolicy,
         now: Instant,
     ): RateLimitResult
+
+    /** 소비한 것을 되돌린다. 창이 이미 바뀌었다면 아무 일도 하지 않는다 */
+    fun refund(
+        key: String,
+        now: Instant,
+    )
 }
 
 data class RateLimitPolicy(

@@ -33,8 +33,8 @@ class LoginService(
 
     @Transactional
     fun login(command: LoginCommand): IssuedTokens {
-        // 한도를 넘긴 요청은 해싱 전에 끊는다. 실패한 뒤에 세면 이미 비용을 치른 뒤다.
-        abuseGuard.ensureLoginAllowed(command.clientIp)
+        // 해싱 전에 센다. 실패한 뒤에 세면 동시 요청이 모두 통과해 비용을 다 치른다.
+        abuseGuard.guardLoginAttempt(command.clientIp)
         // 형식 위반이어도 400 이 아니라 401 로 돌려보낸다. 로그인에서 400 과 401 이 갈리면
         // 그 차이만으로 아이디 규칙과 존재 여부를 좁혀 갈 수 있다.
         val userId = parseOrNull { UserId.of(command.userId) }
@@ -49,13 +49,15 @@ class LoginService(
                 user?.password ?: decoyPassword,
             )
         if (user == null || rawPassword == null || !matches) {
-            // 실패만 센다. 성공한 로그인이 예산을 깎으면 정상 사용자가 스스로 막힌다.
-            abuseGuard.recordLoginFailure(command.clientIp)
             throw InvalidCredentialsException()
         }
 
         // 비밀번호가 맞은 뒤에 본다. 먼저 보면 비밀번호를 모르는 사람에게도 계정 상태가 드러난다.
         user.ensureCanLogIn()
+
+        // 성공했으니 앞에서 센 것을 되돌린다. 여러 사람이 한 IP 를 쓰는 환경에서
+        // 성공까지 세면 아무도 공격하지 않았는데 한도가 찬다.
+        abuseGuard.forgiveLogin(command.clientIp)
 
         val id = requireNotNull(user.id) { "저장된 회원이어야 한다" }
         return tokenIssuer.issueFor(id, timeProvider.now())

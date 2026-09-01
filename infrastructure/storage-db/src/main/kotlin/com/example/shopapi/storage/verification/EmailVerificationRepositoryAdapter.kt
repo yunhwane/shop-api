@@ -23,7 +23,11 @@ internal class EmailVerificationRepositoryAdapter(
         jpaRepository.findByToken(token.value)?.toDomain()
 
     @Transactional
-    override fun deleteExpiredBefore(now: Instant): Int = jpaRepository.deleteExpiredBefore(now)
+    override fun deleteUnusableAsOf(now: Instant): Int =
+        jpaRepository.deleteUnusable(
+            now = now,
+            verifiedBefore = now - EmailVerification.CONSUME_TIME_TO_LIVE,
+        )
 
     override fun deleteUnverifiedByEmail(email: Email) {
         jpaRepository.deleteByEmailAndVerifiedAtIsNull(email.value)
