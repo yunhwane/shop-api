@@ -11,6 +11,8 @@ dependencies {
     testImplementation(project(":core:core-enum"))
     testImplementation(project(":core:core-domain"))
     testImplementation(project(":infrastructure:storage-db"))
+    testImplementation(project(":infrastructure:security"))
+    testImplementation(project(":infrastructure:client-mail"))
     testImplementation(project(":api"))
 
     testImplementation(libs.archunit.junit5)
