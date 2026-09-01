@@ -77,13 +77,13 @@ class Product(
      *
      * 주문에 따른 차감·복원은 이 경로를 쓰지 않는다. 읽은 값에 더하고 빼면 동시 요청이
      * 서로의 결과를 덮어쓴다(ADR 0014).
+     *
+     * [updatedAt] 을 바꾸지 않는다. 그 값은 카탈로그를 고친 시각이고 재고를 세는 일은
+     * 카탈로그 수정이 아니다. 저장 경로가 `updated_at` 을 건드리지 않는 것과 맞춘다.
      */
-    fun adjustStock(
-        stockQuantity: StockQuantity,
-        now: Instant,
-    ): Product {
+    fun adjustStock(stockQuantity: StockQuantity): Product {
         ensureNotDiscontinued()
-        return copyWith(stockQuantity = stockQuantity, updatedAt = now)
+        return copyWith(stockQuantity = stockQuantity, updatedAt = updatedAt)
     }
 
     /** 이미 판매 중이면 멱등하게 자신을 돌려준다 */

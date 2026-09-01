@@ -49,21 +49,26 @@ internal class ProductQueryRepository(
      * 커서 위치 **다음**부터를 고른다.
      *
      * 정렬 키만 비교하면 가격이 같은 상품들이 경계에서 통째로 빠지거나 반복된다.
-     * `id` 를 마지막 비교 대상으로 붙여 전순서를 만든다. `id` 의 방향은 정렬과 무관하게
-     * `order by` 의 타이브레이커와 같아야 한다.
+     * `id` 를 마지막 비교 대상으로 붙여 전순서를 만든다. 부등호 방향은 `order by` 의
+     * 타이브레이커와 반드시 같아야 한다.
+     *
+     * `PRICE_DESC` 의 타이브레이커가 `id desc` 인 이유는 인덱스 때문이다. 인덱스가
+     * `(status, price, id)` 오름차순이라 역방향 스캔이 내주는 순서는 `price desc, id desc`
+     * 다. 여기서 `id asc` 를 고르면 DB 가 전부 읽어 다시 정렬해야 해서, 커서로 얻으려던
+     * "어느 위치든 인덱스 탐색 한 번"이 사라진다(ADR 0015).
      */
     private fun cursorCondition(sort: ProductSort): String =
         when (sort) {
             ProductSort.LATEST -> "p.id < :cursorId"
             ProductSort.PRICE_ASC -> "(p.price > :cursorPrice or (p.price = :cursorPrice and p.id > :cursorId))"
-            ProductSort.PRICE_DESC -> "(p.price < :cursorPrice or (p.price = :cursorPrice and p.id > :cursorId))"
+            ProductSort.PRICE_DESC -> "(p.price < :cursorPrice or (p.price = :cursorPrice and p.id < :cursorId))"
         }
 
     private fun orderBy(sort: ProductSort): String =
         when (sort) {
             ProductSort.LATEST -> "p.id desc"
             ProductSort.PRICE_ASC -> "p.price asc, p.id asc"
-            ProductSort.PRICE_DESC -> "p.price desc, p.id asc"
+            ProductSort.PRICE_DESC -> "p.price desc, p.id desc"
         }
 
     private companion object {

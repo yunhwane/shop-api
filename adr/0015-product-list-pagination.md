@@ -54,6 +54,12 @@ GET /api/v1/products?category=&keyword=&sort=&cursor=&size=
 WHERE (price, id) > (:lastPrice, :lastId)   -- PRICE_ASC
 ```
 
+**`id` 의 방향은 `order by` 의 타이브레이커와 같아야 하고, 그 타이브레이커는 인덱스가
+정한다.** `PRICE_DESC` 의 타이브레이커가 `id desc` 인 이유가 이것이다 — 인덱스가
+`(status, price, id)` 오름차순이라 역방향 스캔이 내주는 순서는 `price desc, id desc` 다.
+여기서 `id asc` 를 고르면 결과는 맞지만 DB 가 전부 읽어 다시 정렬해야 해서,
+커서로 얻으려던 이점이 사라진다.
+
 **커서에 정렬 조건까지 담는 이유**
 
 `sort=PRICE_ASC` 로 받은 커서를 `sort=LATEST` 와 함께 보내면 결과가 아무 의미가 없다.

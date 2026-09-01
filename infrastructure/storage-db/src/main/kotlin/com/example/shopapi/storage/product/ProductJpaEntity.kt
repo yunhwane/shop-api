@@ -16,6 +16,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
+import org.hibernate.annotations.DynamicUpdate
 import java.time.Instant
 
 /**
@@ -26,8 +27,14 @@ import java.time.Instant
  *
  * 인덱스가 넷인 것은 **필터 × 정렬 조합만큼 필요하다**는 뜻이다. 정렬 옵션을 하나 더
  * 넣으면 둘이 는다(ADR 0015).
+ *
+ * `@DynamicUpdate` 는 성능을 위한 것이 아니라 **정확성을 위한 것이다.** 기본값으로
+ * Hibernate 는 바뀐 컬럼만 고르는 것이 아니라 매핑된 컬럼을 전부 UPDATE 문에 싣는다.
+ * 그러면 [applyCatalog] 가 재고를 건드리지 않아도 메모리에 남아 있던 옛 재고가 그대로
+ * 쓰여, 그 사이에 커밋된 차감이 지워진다. 둘은 함께여야 뜻을 이룬다(ADR 0014).
  */
 @Entity
+@DynamicUpdate
 @Table(
     name = "products",
     indexes = [
@@ -61,6 +68,23 @@ class ProductJpaEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant,
 ) {
+    /**
+     * 카탈로그 정보만 덮어쓴다. **재고는 건드리지 않는다.**
+     *
+     * 도메인 객체가 들고 있는 재고까지 쓰면, 읽은 뒤 저장하기까지의 사이에 커밋된 차감이
+     * 지워진다. 조건부 원자 갱신으로 막은 초과 판매가 이 경로로 되돌아온다(ADR 0014).
+     *
+     * 클래스에 붙은 `@DynamicUpdate` 가 없으면 이 노력이 헛돈다. 그 설명은 클래스 KDoc 에 있다.
+     */
+    fun applyCatalog(product: Product) {
+        name = product.name.value
+        description = product.description.value
+        price = product.price.amount
+        category = product.category
+        status = product.status
+        updatedAt = product.updatedAt
+    }
+
     fun toDomain(): Product =
         Product(
             id = id,

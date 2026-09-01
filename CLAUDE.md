@@ -24,6 +24,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Resend API 키 없이 실행. 인증 메일 대신 링크가 로그로 나온다
 ./gradlew :api:bootRun --args='--mail.provider=log'
 
+# 샘플 상품까지 넣고 실행. 상품 등록 API 가 없어 카탈로그가 비어 있다
+./gradlew :api:bootRun --args='--mail.provider=log --catalog.seed=true'
+
 # 단일 테스트 클래스 / 메서드
 ./gradlew :tests:architecture:test --tests 'com.example.shopapi.architecture.ModuleDependencyTest'
 ./gradlew :api:test --tests 'ShopApiApplicationTests.contextLoads'

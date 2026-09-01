@@ -32,6 +32,15 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # keg-only 라 PATH 에 잡히�
 ./gradlew :api:bootRun --args='--mail.provider=log'
 ```
 
+상품 카탈로그는 비어 있는 채로 뜹니다. 상품 등록 API 가 아직 없기 때문입니다
+([상품 도메인 설계](adr/design/product-domain.md) 참고). 샘플 상품을 넣으려면 시드를 켭니다.
+
+```bash
+./gradlew :api:bootRun --args='--mail.provider=log --catalog.seed=true'
+```
+
+기동할 때마다 같은 샘플이 다시 들어가므로 기본값은 꺼짐입니다.
+
 ## 모듈 구조
 
 ```

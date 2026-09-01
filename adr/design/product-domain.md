@@ -209,6 +209,7 @@ ProductDiscontinuedException    단종된 상품을 고치거나 상태를 바�
 
 ```kotlin
 interface ProductRepository {
+    /** 카탈로그 정보만 저장한다. **재고 수량은 쓰지 않는다**(아래 7장) */
     fun save(product: Product): Product
 
     fun findById(id: Long): Product?
@@ -223,14 +224,16 @@ interface ProductRepository {
      * 둘 다 같은 재고를 읽기 때문이다. 유니크 제약이 중복 가입의 진짜 방어선인 것과
      * 같은 이유로(ADR 0005), 경합은 DB 가 판정한다(ADR 0014).
      *
-     * quantity 가 0 이하면 아무것도 바꾸지 않고 false 를 돌려준다. 이 조건도 UPDATE 문
-     * 안에 있다 - 어댑터에서 걸러 예외를 던지면 `@Repository` 의 예외 변환이 그것을
-     * Spring 의 DAO 예외로 감싸, 어댑터가 프레임워크 타입을 밖으로 흘린다.
+     * 판매 상태와 수량 조건도 같은 UPDATE 문 안에 있다. false 는 "재고 부족"이 아니라
+     * "지금은 못 판다"로 읽어야 한다.
      */
     fun decreaseStockIfEnough(id: Long, quantity: Int): Boolean
 
     /** 주문 취소·환불에 따른 복원. 값 객체의 상한을 우회한다(ADR 0014) */
-    fun increaseStock(id: Long, quantity: Int)
+    fun increaseStock(id: Long, quantity: Int): Boolean
+
+    /** 입고·실사에 따른 정정. 규칙은 도메인이 판정하고 여기서는 쓰기만 한다 */
+    fun adjustStock(id: Long, quantity: Int): Boolean
 }
 ```
 
@@ -358,12 +361,13 @@ ProductManagementService     changeDetails       이름 · 설명 · 카테고�
 로컬 실행용 시드가 채운다. H2 인메모리에 `ddl-auto=create-drop` 이라 재시작마다
 비기 때문에, 조회 API 를 실제로 확인하려면 어차피 무언가 필요하다.
 
-```
-catalog.seed=true    애플리케이션 기동 시 샘플 상품을 등록한다. application.properties 의 기본값
+```bash
+./gradlew :api:bootRun --args='--mail.provider=log --catalog.seed=true'
 ```
 
-목록 결과를 재는 테스트는 이것을 끈다. 시드가 들어오면 테스트가 만든 상품과 섞여
-실행 순서에 따라 답이 달라진다.
+**기본값은 꺼짐이다.** 켠 채로 두면 기동할 때마다 같은 샘플이 다시 들어가, 데이터가
+남는 DB 에서는 재시작한 횟수만큼 가짜 상품이 카탈로그에 쌓인다. 목록 결과를 재는
+테스트도 이것을 끄고 돈다.
 
 시드는 유스케이스를 호출한다. 직접 리포지토리를 부르지 않는다 — 그러면 도메인 규칙을
 우회한 데이터가 들어가고, 시드로 만든 상품만 조회에서 이상하게 동작하는 일이 생긴다.
@@ -399,7 +403,8 @@ idx_products_status_price_id     (status, price, id)                전체 · �
 idx_products_status_cat_price_id (status, category, price, id)      카테고리 · 가격순
 ```
 
-`PRICE_DESC` 는 가격순 인덱스를 역방향으로 스캔한다.
+`PRICE_DESC` 는 가격순 인덱스를 역방향으로 스캔한다. 그래서 타이브레이커가 `id desc` 다 —
+`id asc` 로 두면 결과는 맞지만 DB 가 전부 읽어 다시 정렬한다.
 
 인덱스가 넷인 것이 **필터 × 정렬 조합만큼 인덱스가 필요하다는 비용**을 그대로 보여준다.
 정렬 옵션을 하나 더 넣으면 둘이 는다. 정렬을 무제한으로 늘릴 수 없다는 뜻이다.
@@ -411,7 +416,15 @@ idx_products_status_cat_price_id (status, category, price, id)      카테고리
 모른 채 상품이 늘면 목록 API 가 서서히 느려지고 원인을 페이지네이션으로 오해하기 쉽다
 ([0015](../0015-product-list-pagination.md)).
 
-재고를 바꾸는 두 쿼리는 `updated_at` 을 건드리지 않는다. 그 값은 카탈로그를 고친
+### 재고를 쓰는 길은 하나뿐이다
+
+`save` 는 재고 컬럼을 쓰지 않고, 엔티티에 `@DynamicUpdate` 가 붙어 있다. **둘 다 필요하다.**
+Hibernate 는 기본값으로 매핑된 컬럼을 전부 UPDATE 문에 실으므로, 저장 경로가 재고를
+건드리지 않아도 메모리에 남은 옛 값이 그대로 쓰인다. 그러면 가격을 고치는 트랜잭션이
+그 사이에 커밋된 차감을 지우고, 조건부 원자 갱신으로 막은 초과 판매가 옆문으로 들어온다
+([0014](../0014-stock-and-oversell.md)). `ProductStockConcurrencyTest` 가 이 경로를 고정한다.
+
+재고를 바꾸는 세 쿼리는 `updated_at` 을 건드리지 않는다. 그 값은 카탈로그를 고친
 시각이고 재고 차감은 카탈로그 수정이 아니다. 시각을 받게 만들면 포트 시그니처에 시계가
 끌려 들어온다.
 

@@ -85,7 +85,7 @@ class ProductTest {
         assertFailsWith<ProductDiscontinuedException> { discontinued.startSelling(later) }
         assertFailsWith<ProductDiscontinuedException> { discontinued.suspendSelling(later) }
         assertFailsWith<ProductDiscontinuedException> { discontinued.changePrice(Money.of(1000), later) }
-        assertFailsWith<ProductDiscontinuedException> { discontinued.adjustStock(StockQuantity.of(1), later) }
+        assertFailsWith<ProductDiscontinuedException> { discontinued.adjustStock(StockQuantity.of(1)) }
     }
 
     @Test
@@ -104,11 +104,13 @@ class ProductTest {
         assertEquals(later, changed.updatedAt)
     }
 
+    /** 재고를 세는 일은 카탈로그 수정이 아니다. 저장 경로가 updated_at 을 건드리지 않는 것과 맞춘다. */
     @Test
-    fun `재고를 다시 세면 그 값으로 덮어쓴다`() {
-        val adjusted = product(stock = 3).adjustStock(StockQuantity.of(50), later)
+    fun `재고를 다시 세면 갱신 시각을 건드리지 않고 값만 덮어쓴다`() {
+        val adjusted = product(stock = 3).adjustStock(StockQuantity.of(50))
 
         assertEquals(50, adjusted.stockQuantity.value)
+        assertEquals(now, adjusted.updatedAt)
     }
 
     @Test

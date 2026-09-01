@@ -45,11 +45,24 @@ class ProductManagementService(
         price: Long,
     ): Product = update(id) { it.changePrice(Money.of(price), timeProvider.now()) }
 
+    /**
+     * 재고 정정. 규칙은 도메인이 판정하고 쓰기는 원자 갱신으로 간다.
+     *
+     * [update] 를 쓰지 않는 이유는 그 경로가 카탈로그 저장이고 재고를 쓰지 않기 때문이다.
+     * 재고는 언제나 한 문장으로 쓴다(ADR 0014).
+     */
     @Transactional
     fun adjustStock(
         id: Long,
         stockQuantity: Int,
-    ): Product = update(id) { it.adjustStock(StockQuantity.of(stockQuantity), timeProvider.now()) }
+    ): Product {
+        val product = products.findById(id) ?: throw ProductNotFoundException()
+        val adjusted = product.adjustStock(StockQuantity.of(stockQuantity))
+        if (!products.adjustStock(id, adjusted.stockQuantity.value)) {
+            throw ProductNotFoundException()
+        }
+        return adjusted
+    }
 
     @Transactional
     fun startSelling(id: Long): Product = update(id) { it.startSelling(timeProvider.now()) }
