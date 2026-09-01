@@ -118,8 +118,10 @@ Gradle 순환이 됩니다. CI 가 `api-docs` 아티팩트로 올리니 PR 에�
 되돌리는 비용이 큰 결정은 [`adr/`](adr/) 에 기록합니다. 무엇을 정했는지보다
 **무엇을 포기했고 왜인지**를 남깁니다. 색인은 [adr/README.md](adr/README.md) 에 있습니다.
 
-현재 구현된 도메인의 전체 흐름은 [회원 도메인 설계](adr/design/member-domain.md) 를
-참고하세요.
+도메인별 전체 흐름은 설계 문서에 있습니다.
+
+- [회원 도메인](adr/design/member-domain.md)
+- [상품 도메인](adr/design/product-domain.md)
 
 ## 기여
 
