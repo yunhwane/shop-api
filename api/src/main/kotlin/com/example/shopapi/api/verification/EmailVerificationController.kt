@@ -1,12 +1,14 @@
 package com.example.shopapi.api.verification
 
 import com.example.shopapi.api.common.ApiResponse
+import com.example.shopapi.api.support.clientIp
 import com.example.shopapi.api.verification.application.EmailVerificationService
 import com.example.shopapi.api.verification.dto.VerificationConfirmRequest
 import com.example.shopapi.api.verification.dto.VerificationIssuedResponse
 import com.example.shopapi.api.verification.dto.VerificationRequest
 import com.example.shopapi.api.verification.dto.VerificationStatusResponse
 import com.example.shopapi.core.enums.EmailVerificationStatus
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,8 +27,9 @@ class EmailVerificationController(
     @PostMapping
     fun request(
         @RequestBody request: VerificationRequest,
+        httpRequest: HttpServletRequest,
     ): ResponseEntity<ApiResponse<VerificationIssuedResponse>> {
-        val verification = service.request(request.email)
+        val verification = service.request(request.email, httpRequest.clientIp())
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(ApiResponse.of(VerificationIssuedResponse.from(verification)))

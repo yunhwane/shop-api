@@ -1,5 +1,6 @@
 package com.example.shopapi.api.verification.application
 
+import com.example.shopapi.api.support.AbuseGuard
 import com.example.shopapi.core.domain.common.Email
 import com.example.shopapi.core.domain.port.VerificationMailer
 import com.example.shopapi.core.domain.verification.EmailVerification
@@ -24,9 +25,20 @@ import org.springframework.stereotype.Service
 class EmailVerificationService(
     private val issuer: VerificationIssuer,
     private val mailer: VerificationMailer,
+    private val abuseGuard: AbuseGuard,
 ) {
-    fun request(rawEmail: String): EmailVerification {
-        val verification = issuer.issue(Email.of(rawEmail))
+    fun request(
+        rawEmail: String,
+        clientIp: String,
+    ): EmailVerification {
+        // IP 검사를 파싱보다 먼저 한다. 뒤에 두면 형식이 틀린 주소를 던지는 것만으로
+        // 제한을 건너뛸 수 있다.
+        abuseGuard.guardVerificationRequest(clientIp)
+
+        val email = Email.of(rawEmail)
+        abuseGuard.guardVerificationRequest(email)
+
+        val verification = issuer.issue(email)
         mailer.sendVerification(verification.email, verification.token)
         return verification
     }

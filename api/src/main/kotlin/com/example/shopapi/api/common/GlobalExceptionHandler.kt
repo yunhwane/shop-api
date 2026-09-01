@@ -2,6 +2,7 @@ package com.example.shopapi.api.common
 
 import com.example.shopapi.core.domain.common.DomainException
 import com.example.shopapi.core.domain.common.InvalidValueException
+import com.example.shopapi.core.domain.common.TooManyRequestsException
 import com.example.shopapi.core.enums.ErrorCode
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
@@ -50,6 +51,28 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
             listOf(ProblemDetails.FieldError(field = e.field, reason = e.reason)),
         )
         return ResponseEntity.status(problem.status).body(problem)
+    }
+
+    /**
+     * 언제 다시 시도할지 알려 준다.
+     *
+     * `Retry-After` 가 없으면 클라이언트가 간격을 모른 채 계속 두드리고, 그러면 제한이
+     * 부하를 줄이지 못한다. 확장 필드로도 함께 담아 헤더를 읽지 않는 클라이언트를 돕는다.
+     */
+    @ExceptionHandler(TooManyRequestsException::class)
+    fun handleTooManyRequests(
+        e: TooManyRequestsException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ProblemDetail> {
+        val retryAfterSeconds = e.retryAfter.toSeconds().coerceAtLeast(1)
+        val problem = ProblemDetails.of(e.errorCode, e.message, request.requestURI)
+        problem.setProperty("retryAfterSeconds", retryAfterSeconds)
+
+        log.warn("호출 제한 초과. uri={}", request.requestURI)
+        return ResponseEntity
+            .status(problem.status)
+            .header(HttpHeaders.RETRY_AFTER, retryAfterSeconds.toString())
+            .body(problem)
     }
 
     @ExceptionHandler(DomainException::class)

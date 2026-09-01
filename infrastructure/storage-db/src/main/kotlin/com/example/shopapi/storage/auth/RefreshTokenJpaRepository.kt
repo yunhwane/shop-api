@@ -26,4 +26,10 @@ internal interface RefreshTokenJpaRepository : JpaRepository<RefreshTokenJpaEnti
     fun deleteByTokenHash(tokenHash: String)
 
     fun deleteAllByUserId(userId: Long)
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from RefreshTokenJpaEntity t where t.expiresAt < :now")
+    fun deleteExpiredBefore(
+        @Param("now") now: Instant,
+    ): Int
 }

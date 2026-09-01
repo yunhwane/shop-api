@@ -6,6 +6,8 @@ import com.example.shopapi.core.domain.verification.EmailVerification
 import com.example.shopapi.core.domain.verification.VerificationId
 import com.example.shopapi.core.domain.verification.VerificationToken
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Repository
 internal class EmailVerificationRepositoryAdapter(
@@ -19,6 +21,9 @@ internal class EmailVerificationRepositoryAdapter(
 
     override fun findByToken(token: VerificationToken): EmailVerification? =
         jpaRepository.findByToken(token.value)?.toDomain()
+
+    @Transactional
+    override fun deleteExpiredBefore(now: Instant): Int = jpaRepository.deleteExpiredBefore(now)
 
     override fun deleteUnverifiedByEmail(email: Email) {
         jpaRepository.deleteByEmailAndVerifiedAtIsNull(email.value)

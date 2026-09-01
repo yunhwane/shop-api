@@ -34,6 +34,9 @@ enum class ErrorCode(
     UNAUTHENTICATED("로그인이 필요합니다."),
     ACCESS_DENIED("권한이 없습니다."),
 
+    /** 남용 방지 호출 제한을 넘겼다(ADR 0009) */
+    TOO_MANY_REQUESTS("요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }

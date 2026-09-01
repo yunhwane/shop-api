@@ -1,5 +1,6 @@
 package com.example.shopapi.api.auth.application
 
+import com.example.shopapi.api.support.AbuseGuard
 import com.example.shopapi.core.domain.auth.InvalidCredentialsException
 import com.example.shopapi.core.domain.common.InvalidValueException
 import com.example.shopapi.core.domain.port.PasswordEncoder
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class LoginService(
+    private val abuseGuard: AbuseGuard,
     private val users: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val tokenIssuer: AuthTokenIssuer,
@@ -31,6 +33,8 @@ class LoginService(
 
     @Transactional
     fun login(command: LoginCommand): IssuedTokens {
+        // 한도를 넘긴 요청은 해싱 전에 끊는다. 실패한 뒤에 세면 이미 비용을 치른 뒤다.
+        abuseGuard.ensureLoginAllowed(command.clientIp)
         // 형식 위반이어도 400 이 아니라 401 로 돌려보낸다. 로그인에서 400 과 401 이 갈리면
         // 그 차이만으로 아이디 규칙과 존재 여부를 좁혀 갈 수 있다.
         val userId = parseOrNull { UserId.of(command.userId) }
@@ -45,6 +49,8 @@ class LoginService(
                 user?.password ?: decoyPassword,
             )
         if (user == null || rawPassword == null || !matches) {
+            // 실패만 센다. 성공한 로그인이 예산을 깎으면 정상 사용자가 스스로 막힌다.
+            abuseGuard.recordLoginFailure(command.clientIp)
             throw InvalidCredentialsException()
         }
 
@@ -70,4 +76,5 @@ class LoginService(
 data class LoginCommand(
     val userId: String,
     val password: String,
+    val clientIp: String,
 )

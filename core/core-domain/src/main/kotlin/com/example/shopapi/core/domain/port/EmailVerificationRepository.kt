@@ -4,6 +4,7 @@ import com.example.shopapi.core.domain.common.Email
 import com.example.shopapi.core.domain.verification.EmailVerification
 import com.example.shopapi.core.domain.verification.VerificationId
 import com.example.shopapi.core.domain.verification.VerificationToken
+import java.time.Instant
 
 interface EmailVerificationRepository {
     fun save(verification: EmailVerification): EmailVerification
@@ -23,4 +24,7 @@ interface EmailVerificationRepository {
      * 사용자가 인증 후 재발송을 누르는 것만으로도 자기 인증이 날아간다.
      */
     fun deleteUnverifiedByEmail(email: Email)
+
+    /** 기한이 지난 인증을 지운다. 지운 행 수를 돌려준다(ADR 0010) */
+    fun deleteExpiredBefore(now: Instant): Int
 }

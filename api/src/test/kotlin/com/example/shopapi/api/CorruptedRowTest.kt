@@ -19,7 +19,15 @@ import kotlin.test.assertFailsWith
  * 마이그레이션이나 손으로 넣은 데이터가 만들어 내는 상황이 이것이다.
  */
 @SpringBootTest
-@TestPropertySource(properties = ["mail.provider=log"])
+@TestPropertySource(
+    properties = [
+        "mail.provider=log",
+        // 이 테스트들이 검증하는 것은 호출 제한이 아니다. RateLimitTest 가 따로 본다.
+        "security.rate-limit.verification-per-ip.limit=1000",
+        "security.rate-limit.verification-per-email.limit=1000",
+        "security.rate-limit.login-failure-per-ip.limit=1000",
+    ],
+)
 class CorruptedRowTest(
     @param:Autowired private val dataSource: DataSource,
     @param:Autowired private val users: UserRepository,

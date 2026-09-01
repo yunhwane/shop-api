@@ -28,6 +28,9 @@ internal class RefreshTokenRepositoryAdapter(
         jpaRepository.deleteByTokenHash(tokenHash)
     }
 
+    @Transactional
+    override fun deleteExpiredBefore(now: Instant): Int = jpaRepository.deleteExpiredBefore(now)
+
     override fun deleteAllByUserId(userId: Long) {
         jpaRepository.deleteAllByUserId(userId)
     }

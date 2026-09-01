@@ -29,6 +29,7 @@ object ErrorCodeHttpStatus {
             ErrorCode.DUPLICATE_USER_ID to HttpStatus.CONFLICT,
             ErrorCode.DUPLICATE_EMAIL to HttpStatus.CONFLICT,
             ErrorCode.VERIFICATION_ALREADY_USED to HttpStatus.CONFLICT,
+            ErrorCode.TOO_MANY_REQUESTS to HttpStatus.TOO_MANY_REQUESTS,
             ErrorCode.MAIL_SEND_FAILED to HttpStatus.BAD_GATEWAY,
             ErrorCode.INTERNAL_ERROR to HttpStatus.INTERNAL_SERVER_ERROR,
         )
