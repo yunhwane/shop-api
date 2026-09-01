@@ -59,21 +59,20 @@ class EmailVerification(
     /**
      * 메일 링크 클릭. 인증을 완료한다.
      *
+     * 토큰을 받지 않는다. 이 객체는 토큰으로 조회해서 얻은 것이므로, 호출자가 토큰을
+     * 알고 있다는 사실이 조회 성공으로 이미 증명됐다. 여기서 한 번 더 비교해도 항상
+     * 참이라 검사처럼 보이지만 아무것도 걸러내지 못한다.
+     *
      * 이미 인증된 건에 대해서는 멱등하게 자신을 돌려준다. 사용자가 링크를 두 번 누르거나
      * 브라우저가 요청을 재전송하는 일이 흔하고, 그것을 실패로 보여 줄 이유가 없다.
      */
-    fun verify(
-        token: VerificationToken,
-        now: Instant,
-    ): EmailVerification {
-        if (this.token != token) throw InvalidVerificationTokenException()
-        return when (statusAt(now)) {
+    fun verify(now: Instant): EmailVerification =
+        when (statusAt(now)) {
             EmailVerificationStatus.CONSUMED -> throw VerificationAlreadyUsedException()
             EmailVerificationStatus.EXPIRED -> throw VerificationExpiredException()
             EmailVerificationStatus.VERIFIED -> this
             EmailVerificationStatus.PENDING -> copyWith(verifiedAt = now, consumedAt = null)
         }
-    }
 
     /**
      * 가입에 사용한다. 한 번만 성공한다.

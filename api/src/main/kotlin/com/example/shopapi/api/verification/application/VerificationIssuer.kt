@@ -7,6 +7,7 @@ import com.example.shopapi.core.domain.port.TokenGenerator
 import com.example.shopapi.core.domain.port.UserRepository
 import com.example.shopapi.core.domain.user.DuplicateEmailException
 import com.example.shopapi.core.domain.verification.EmailVerification
+import com.example.shopapi.core.domain.verification.InvalidVerificationTokenException
 import com.example.shopapi.core.domain.verification.VerificationId
 import com.example.shopapi.core.domain.verification.VerificationNotFoundException
 import com.example.shopapi.core.domain.verification.VerificationToken
@@ -37,7 +38,7 @@ class VerificationIssuer(
     fun issue(email: Email): EmailVerification {
         if (userRepository.existsByEmail(email)) throw DuplicateEmailException()
 
-        verificationRepository.deleteUnconsumedByEmail(email)
+        verificationRepository.deleteUnverifiedByEmail(email)
 
         return verificationRepository.save(
             EmailVerification.issue(
@@ -49,11 +50,17 @@ class VerificationIssuer(
         )
     }
 
-    /** 메일 링크 클릭. 이미 인증된 건이면 멱등하게 성공한다. */
+    /**
+     * 메일 링크 클릭. 이미 인증된 건이면 멱등하게 성공한다.
+     *
+     * 조회 실패를 `VERIFICATION_NOT_FOUND` 가 아니라 토큰 오류로 다룬다. 이 엔드포인트가
+     * 받는 것은 토큰이고, 그것으로 아무것도 찾지 못했다면 토큰이 유효하지 않은 것이다.
+     * 404 로 내보내면 verificationId 조회 실패와 구분되지 않는다.
+     */
     @Transactional
     fun confirm(token: VerificationToken): EmailVerification {
-        val verification = verificationRepository.findByToken(token) ?: throw VerificationNotFoundException()
-        return verificationRepository.save(verification.verify(token, timeProvider.now()))
+        val verification = verificationRepository.findByToken(token) ?: throw InvalidVerificationTokenException()
+        return verificationRepository.save(verification.verify(timeProvider.now()))
     }
 
     @Transactional(readOnly = true)

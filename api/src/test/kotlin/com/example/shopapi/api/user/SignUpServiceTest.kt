@@ -51,7 +51,7 @@ class SignUpServiceTest {
         verifications.save(
             EmailVerification
                 .issue(verificationId, token, email, now.minusSeconds(60))
-                .verify(token, now.minusSeconds(30)),
+                .verify(now.minusSeconds(30)),
         )
 
     @Test
@@ -179,7 +179,7 @@ private class FakeEmailVerificationRepository : EmailVerificationRepository {
 
     override fun findByToken(token: VerificationToken): EmailVerification? = stored.values.find { it.token == token }
 
-    override fun deleteUnconsumedByEmail(email: Email) {
-        stored.values.removeIf { it.email == email && it.consumedAt == null }
+    override fun deleteUnverifiedByEmail(email: Email) {
+        stored.values.removeIf { it.email == email && it.verifiedAt == null }
     }
 }

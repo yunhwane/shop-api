@@ -20,7 +20,7 @@ internal class EmailVerificationRepositoryAdapter(
     override fun findByToken(token: VerificationToken): EmailVerification? =
         jpaRepository.findByToken(token.value)?.toDomain()
 
-    override fun deleteUnconsumedByEmail(email: Email) {
-        jpaRepository.deleteByEmailAndConsumedAtIsNull(email.value)
+    override fun deleteUnverifiedByEmail(email: Email) {
+        jpaRepository.deleteByEmailAndVerifiedAtIsNull(email.value)
     }
 }

@@ -167,4 +167,33 @@ class SignUpFlowTest(
             .andExpect(status().isConflict)
             .andExpect(jsonPath("$.code").value("VERIFICATION_ALREADY_USED"))
     }
+
+    /**
+     * 인증 요청은 인증이 필요 없는 엔드포인트다. 재발송이 이미 마친 인증을 지우면,
+     * 누구든 남의 주소로 요청하는 것만으로 그 사람의 가입을 막을 수 있다.
+     * 사용자가 스스로 재발송을 눌렀을 때 자기 인증이 날아가는 문제이기도 하다.
+     */
+    @Test
+    fun `인증을 마친 뒤 같은 주소로 재요청이 들어와도 가입할 수 있다`() {
+        val verificationId = requestVerification("resend@example.com")
+        confirm(tokenOf(verificationId))
+
+        requestVerification("resend@example.com")
+
+        signUp(verificationId, "resenduser")
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.email").value("resend@example.com"))
+    }
+
+    /** verificationId 조회 실패(404)와 구분되어야 한다. */
+    @Test
+    fun `알 수 없는 토큰으로 확인하면 토큰 오류를 알려준다`() {
+        mockMvc
+            .perform(
+                post("/api/v1/email-verifications/confirm")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"token":"00000000-0000-0000-0000-000000000000"}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_TOKEN"))
+    }
 }

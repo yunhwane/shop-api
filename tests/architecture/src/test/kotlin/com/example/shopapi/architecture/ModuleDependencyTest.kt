@@ -13,6 +13,7 @@ import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
 import com.tngtech.archunit.lang.ArchRule
+import com.tngtech.archunit.lang.CompositeArchRule
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import com.tngtech.archunit.library.Architectures.layeredArchitecture
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
@@ -81,15 +82,27 @@ class ModuleDependencyTest {
             .resideInAPackage(API)
             .because("어댑터는 자신을 쓰는 애플리케이션을 알아서는 안 된다")
 
+    /**
+     * 어댑터 하나마다 규칙을 만들어 묶는다. 출발지를 storage 하나로 고정하면 규칙 이름이
+     * 말하는 것의 3분의 1만 검사하게 되고, `failOnEmptyShould` 도 storage 가 비어 있지
+     * 않은 한 그 사실을 알려주지 않는다.
+     *
+     * 계층 규칙의 `mayNotBeAccessedByAnyLayer` 와 겹치지만, 이름 있는 규칙 하나가
+     * 의도를 더 분명히 남긴다.
+     */
     @ArchTest
     val `인프라 어댑터끼리 서로를 모른다`: ArchRule =
-        noClasses()
-            .that()
-            .resideInAPackage(STORAGE)
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(SECURITY, CLIENT_MAIL)
-            .because("어댑터는 서로 독립적으로 교체될 수 있어야 한다")
+        CompositeArchRule
+            .of(
+                INFRASTRUCTURE.map { origin ->
+                    noClasses()
+                        .that()
+                        .resideInAPackage(origin)
+                        .should()
+                        .dependOnClassesThat()
+                        .resideInAnyPackage(*INFRASTRUCTURE.filterNot { it == origin }.toTypedArray())
+                },
+            ).because("어댑터는 서로 독립적으로 교체될 수 있어야 한다")
 
     @ArchTest
     val `api 는 인프라 구현체를 직접 참조하지 않는다`: ArchRule =

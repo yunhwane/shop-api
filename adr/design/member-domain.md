@@ -113,7 +113,7 @@ class EmailVerification(
     val verifiedAt: Instant?,            // null 이면 미인증
     val consumedAt: Instant?,            // null 이 아니면 가입에 사용 완료
 ) {
-    fun verify(token: VerificationToken, now: Instant): EmailVerification
+    fun verify(now: Instant): EmailVerification
     fun consume(now: Instant): EmailVerification
     fun statusAt(now: Instant): EmailVerificationStatus
 }
@@ -200,7 +200,7 @@ interface EmailVerificationRepository {
     fun save(verification: EmailVerification): EmailVerification
     fun findByVerificationId(id: VerificationId): EmailVerification?
     fun findByToken(token: VerificationToken): EmailVerification?
-    fun deletePendingByEmail(email: Email)   // 재요청 시 기존 미완료 건 정리
+    fun deleteUnverifiedByEmail(email: Email)   // 재요청 시 아직 안 누른 링크 무효화
 }
 
 interface PasswordEncoder {
@@ -376,7 +376,7 @@ Spring 의 트랜잭션 프록시는 자기 자신을 호출할 때 동작하지
 한 클래스 안에서 "커밋 후 발송"을 표현할 수 없다.
 
 발송이 실패하면 인증 레코드는 커밋된 채 남지만 아무도 쓰지 않고 만료되며,
-재요청 시 `deleteUnconsumedByEmail` 이 정리한다.
+재요청 시 `deleteUnverifiedByEmail` 이 정리한다.
 
 ## 7. 영속성
 

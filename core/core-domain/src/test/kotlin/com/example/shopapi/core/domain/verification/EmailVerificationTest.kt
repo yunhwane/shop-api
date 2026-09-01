@@ -33,7 +33,7 @@ class EmailVerificationTest {
     fun `인증하면 인증 완료 상태가 되고 시각이 기록된다`() {
         val at = issuedAt.plusSeconds(60)
 
-        val verified = issued().verify(token, at)
+        val verified = issued().verify(at)
 
         assertEquals(EmailVerificationStatus.VERIFIED, verified.statusAt(at))
         assertEquals(at, verified.verifiedAt)
@@ -43,26 +43,19 @@ class EmailVerificationTest {
     @Test
     fun `이미 인증된 건을 다시 인증해도 성공한다`() {
         val at = issuedAt.plusSeconds(60)
-        val verified = issued().verify(token, at)
+        val verified = issued().verify(at)
 
-        val again = verified.verify(token, at.plusSeconds(1))
+        val again = verified.verify(at.plusSeconds(1))
 
         assertSame(verified, again)
         assertEquals(at, again.verifiedAt)
     }
 
     @Test
-    fun `토큰이 다르면 인증하지 않는다`() {
-        assertFailsWith<InvalidVerificationTokenException> {
-            issued().verify(VerificationToken.of("other-token"), issuedAt)
-        }
-    }
-
-    @Test
     fun `기한이 지난 뒤에는 인증할 수 없다`() {
         val afterExpiry = issuedAt + EmailVerification.TIME_TO_LIVE
 
-        assertFailsWith<VerificationExpiredException> { issued().verify(token, afterExpiry) }
+        assertFailsWith<VerificationExpiredException> { issued().verify(afterExpiry) }
     }
 
     /**
@@ -72,7 +65,7 @@ class EmailVerificationTest {
     @Test
     fun `링크 기한이 지나도 이미 인증했다면 가입할 수 있다`() {
         val verifiedAt = issuedAt.plusSeconds(60)
-        val verified = issued().verify(token, verifiedAt)
+        val verified = issued().verify(verifiedAt)
         val afterLinkExpiry = issuedAt + EmailVerification.TIME_TO_LIVE
 
         assertEquals(EmailVerificationStatus.VERIFIED, verified.statusAt(afterLinkExpiry))
@@ -81,7 +74,7 @@ class EmailVerificationTest {
     @Test
     fun `인증 후 소비 기한이 지나면 만료된다`() {
         val verifiedAt = issuedAt.plusSeconds(60)
-        val verified = issued().verify(token, verifiedAt)
+        val verified = issued().verify(verifiedAt)
         val afterConsumeExpiry = verifiedAt + EmailVerification.CONSUME_TIME_TO_LIVE
 
         assertEquals(EmailVerificationStatus.EXPIRED, verified.statusAt(afterConsumeExpiry))
@@ -98,7 +91,7 @@ class EmailVerificationTest {
         val verifiedAt = issuedAt.plusSeconds(60)
         val consumedAt = verifiedAt.plusSeconds(30)
 
-        val consumed = issued().verify(token, verifiedAt).consume(consumedAt)
+        val consumed = issued().verify(verifiedAt).consume(consumedAt)
 
         assertEquals(EmailVerificationStatus.CONSUMED, consumed.statusAt(consumedAt))
         assertNotNull(consumed.consumedAt)
@@ -108,7 +101,7 @@ class EmailVerificationTest {
     @Test
     fun `한 번 소비한 인증은 다시 쓸 수 없다`() {
         val verifiedAt = issuedAt.plusSeconds(60)
-        val consumed = issued().verify(token, verifiedAt).consume(verifiedAt.plusSeconds(30))
+        val consumed = issued().verify(verifiedAt).consume(verifiedAt.plusSeconds(30))
 
         assertFailsWith<VerificationAlreadyUsedException> { consumed.consume(verifiedAt.plusSeconds(40)) }
     }
@@ -116,9 +109,9 @@ class EmailVerificationTest {
     @Test
     fun `소비된 뒤에는 인증도 거부한다`() {
         val verifiedAt = issuedAt.plusSeconds(60)
-        val consumed = issued().verify(token, verifiedAt).consume(verifiedAt.plusSeconds(30))
+        val consumed = issued().verify(verifiedAt).consume(verifiedAt.plusSeconds(30))
 
-        assertFailsWith<VerificationAlreadyUsedException> { consumed.verify(token, verifiedAt.plusSeconds(40)) }
+        assertFailsWith<VerificationAlreadyUsedException> { consumed.verify(verifiedAt.plusSeconds(40)) }
     }
 
     /** 토큰이 로그로 새면 인증 열쇠가 새는 것과 같다. */

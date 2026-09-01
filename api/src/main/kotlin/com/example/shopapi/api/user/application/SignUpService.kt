@@ -30,7 +30,9 @@ class SignUpService(
     fun signUp(command: SignUpCommand): User {
         val verificationId = VerificationId.of(command.verificationId)
         val userId = UserId.of(command.userId)
-        val rawPassword = RawPassword.of(command.password)
+        // 해싱을 여기서 끝낸다. bcrypt 는 의도적으로 느려서(strength 10 기준 수십 ms)
+        // 조회 뒤로 미루면 그 시간 내내 트랜잭션이 JDBC 커넥션을 쥐고 있게 된다.
+        val encodedPassword = passwordEncoder.encode(RawPassword.of(command.password))
 
         val verification =
             verificationRepository.findByVerificationId(verificationId) ?: throw VerificationNotFoundException()
@@ -49,7 +51,7 @@ class SignUpService(
             User.register(
                 userId = userId,
                 email = consumed.email,
-                password = passwordEncoder.encode(rawPassword),
+                password = encodedPassword,
                 now = now,
             ),
         )

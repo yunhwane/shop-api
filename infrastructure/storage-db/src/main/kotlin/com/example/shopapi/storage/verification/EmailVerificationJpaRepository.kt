@@ -7,5 +7,5 @@ internal interface EmailVerificationJpaRepository : JpaRepository<EmailVerificat
 
     fun findByToken(token: String): EmailVerificationJpaEntity?
 
-    fun deleteByEmailAndConsumedAtIsNull(email: String)
+    fun deleteByEmailAndVerifiedAtIsNull(email: String)
 }
