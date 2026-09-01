@@ -37,7 +37,15 @@ import kotlin.test.assertNotNull
 @SpringBootTest
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs
-@TestPropertySource(properties = ["mail.provider=log"])
+@TestPropertySource(
+    properties = [
+        "mail.provider=log",
+        // 이 테스트들이 검증하는 것은 호출 제한이 아니다. RateLimitTest 가 따로 본다.
+        "security.rate-limit.verification-per-ip.limit=1000",
+        "security.rate-limit.verification-per-email.limit=1000",
+        "security.rate-limit.login-failure-per-ip.limit=1000",
+    ],
+)
 class SignUpDocsTest(
     @param:Autowired private val mockMvc: MockMvc,
     @param:Autowired private val verifications: EmailVerificationRepository,

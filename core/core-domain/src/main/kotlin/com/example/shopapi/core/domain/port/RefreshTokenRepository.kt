@@ -27,4 +27,12 @@ interface RefreshTokenRepository {
 
     /** 재사용이 탐지되면 어느 것이 유출됐는지 알 수 없으므로 전부 끊는다 */
     fun deleteAllByUserId(userId: Long)
+
+    /**
+     * 기한이 지난 토큰을 지운다. 지운 행 수를 돌려준다.
+     *
+     * 소비 여부를 보지 않는다. 소비된 행을 회전 직후에 지우면 재사용 탐지가 무너지지만,
+     * 만료된 행은 만료 검사가 소비 검사보다 앞서므로 어떤 판단에도 쓰이지 않는다(ADR 0010).
+     */
+    fun deleteExpiredBefore(now: Instant): Int
 }

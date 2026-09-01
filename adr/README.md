@@ -15,6 +15,8 @@
 | [0006](0006-api-response-contract.md) | 성공은 공통 봉투로, 실패는 ProblemDetail 로 응답한다 | 수락됨 |
 | [0007](0007-reconstitution-vs-input-validation.md) | 저장된 값의 복원을 입력 검증과 분리한다 | 수락됨 |
 | [0008](0008-login-token-strategy.md) | 로그인은 JWT 액세스 토큰과 회전하는 리프레시 토큰으로 유지한다 | 수락됨 |
+| [0009](0009-abuse-rate-limiting.md) | 남용 방지 호출 제한은 인메모리 고정 창으로 시작한다 | 수락됨 |
+| [0010](0010-expired-data-retention.md) | 만료된 인증과 토큰은 배치로 지운다 | 수락됨 |
 
 ## 설계 문서
 

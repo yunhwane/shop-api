@@ -7,6 +7,8 @@ import com.example.shopapi.api.auth.dto.LoginRequest
 import com.example.shopapi.api.auth.dto.RefreshTokenRequest
 import com.example.shopapi.api.auth.dto.TokenResponse
 import com.example.shopapi.api.common.ApiResponse
+import com.example.shopapi.api.support.clientIp
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -22,8 +24,12 @@ class AuthController(
     @PostMapping("/login")
     fun login(
         @RequestBody request: LoginRequest,
+        httpRequest: HttpServletRequest,
     ): ResponseEntity<ApiResponse<TokenResponse>> {
-        val tokens = loginService.login(LoginCommand(request.userId, request.password))
+        val tokens =
+            loginService.login(
+                LoginCommand(request.userId, request.password, httpRequest.clientIp()),
+            )
         return ResponseEntity.ok(ApiResponse.of(TokenResponse.from(tokens)))
     }
 
