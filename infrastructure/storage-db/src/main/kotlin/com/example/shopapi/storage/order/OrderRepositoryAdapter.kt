@@ -54,4 +54,16 @@ internal class OrderRepositoryAdapter(
         id: Long,
         now: Instant,
     ): Boolean = jpaRepository.cancelIfPaid(id, OrderStatus.PAID, OrderStatus.CANCELLED, now) == 1
+
+    override fun claimPaymentIfPlaced(
+        id: Long,
+        paymentId: Long,
+        now: Instant,
+    ): Boolean = jpaRepository.claimPaymentIfPlaced(id, paymentId, OrderStatus.PLACED, now) == 1
+
+    override fun releaseClaimedPayment(
+        id: Long,
+        paymentId: Long,
+        now: Instant,
+    ): Boolean = jpaRepository.releaseClaimedPayment(id, paymentId, now) == 1
 }

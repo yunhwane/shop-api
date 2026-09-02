@@ -72,6 +72,44 @@ class OrderRepositoryAdapterTest(
         assertEquals(false, orders.cancelIfPaid(orderId, now.plusSeconds(120)))
     }
 
+    /** 결제 시도 하나가 이미 이 주문을 선점하고 있으면 다른 시도는 선점할 수 없다(ADR 0019) */
+    @Test
+    fun `아직 아무도 선점하지 않은 PLACED 주문만 선점된다`() {
+        val productId = onSaleProduct(5)
+        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val orderId = requireNotNull(order.id)
+        val now = order.createdAt
+
+        assertEquals(true, orders.claimPaymentIfPlaced(orderId, paymentId = 1L, now))
+
+        assertEquals(false, orders.claimPaymentIfPlaced(orderId, paymentId = 2L, now.plusSeconds(1)))
+    }
+
+    /** 선점을 놓아주면 다른 결제 시도가 같은 주문을 다시 선점할 수 있다(ADR 0019) */
+    @Test
+    fun `놓아준 선점은 다른 결제 시도가 다시 잡을 수 있다`() {
+        val productId = onSaleProduct(5)
+        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val orderId = requireNotNull(order.id)
+        val now = order.createdAt
+        orders.claimPaymentIfPlaced(orderId, paymentId = 1L, now)
+
+        assertEquals(true, orders.releaseClaimedPayment(orderId, paymentId = 1L, now.plusSeconds(1)))
+        assertEquals(true, orders.claimPaymentIfPlaced(orderId, paymentId = 2L, now.plusSeconds(2)))
+    }
+
+    @Test
+    fun `자신이 선점하지 않은 결제 시도는 놓아줄 수 없다`() {
+        val productId = onSaleProduct(5)
+        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val orderId = requireNotNull(order.id)
+        val now = order.createdAt
+        orders.claimPaymentIfPlaced(orderId, paymentId = 1L, now)
+
+        assertEquals(false, orders.releaseClaimedPayment(orderId, paymentId = 2L, now.plusSeconds(1)))
+        assertEquals(false, orders.claimPaymentIfPlaced(orderId, paymentId = 3L, now.plusSeconds(2)))
+    }
+
     /**
      * 이 경로를 열어 두면 언젠가 취소에도 쓰여, cancelIfPlaced 가 막은 동시 취소 경합이 되살아난다(ADR 0016).
      *
