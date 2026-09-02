@@ -22,6 +22,7 @@
 | [0013](0013-product-category-as-enum.md) | 상품 카테고리는 코드 enum 으로 시작한다 | 수락됨 |
 | [0014](0014-stock-and-oversell.md) | 재고는 상품이 들고, 차감은 조건부 원자 갱신으로만 한다 | 수락됨 |
 | [0015](0015-product-list-pagination.md) | 상품 목록은 커서 페이지네이션으로 낸다 | 수락됨 |
+| [0016](0016-order-domain-scope.md) | 주문은 결제·배송 없이 PLACED/CANCELLED 로 시작하고, 소유권 검사는 404 로 감춘다 | 수락됨 |
 
 ## 설계 문서
 

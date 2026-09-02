@@ -14,3 +14,15 @@ class ProductNotFoundException : DomainException(ErrorCode.PRODUCT_NOT_FOUND)
 class ProductNotOnSaleException : DomainException(ErrorCode.PRODUCT_NOT_ON_SALE)
 
 class ProductDiscontinuedException : DomainException(ErrorCode.PRODUCT_DISCONTINUED)
+
+/**
+ * 주문 시점에 재고가 모자란다.
+ *
+ * [Product.ensureOrderable] 의 사전 검사 실패로 던져진다. 실제 방어선은
+ * `ProductRepository.decreaseStockIfEnough` 의 원자 갱신이고(ADR 0014), 이 예외는
+ * 그 문장이 실패했을 때도 같은 사유로 재사용된다 — 사전 검사를 통과한 뒤 경합에서
+ * 졌다는 뜻이기 때문이다.
+ */
+class InsufficientStockException(
+    val productId: Long,
+) : DomainException(ErrorCode.INSUFFICIENT_STOCK)

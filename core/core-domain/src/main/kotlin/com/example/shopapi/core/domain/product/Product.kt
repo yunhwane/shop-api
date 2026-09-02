@@ -54,6 +54,24 @@ class Product(
     fun canFulfill(quantity: Int): Boolean =
         status == ProductStatus.ON_SALE && quantity > 0 && stockQuantity.isAtLeast(quantity)
 
+    /**
+     * 주문에 담을 수 있는 상품인지 확인한다. **이 판정도 [canFulfill] 처럼 사전 안내용이다.**
+     *
+     * 실제 방어는 `ProductRepository.decreaseStockIfEnough` 의 원자 갱신이 한다(ADR 0014).
+     * 여기서는 정확한 실패 사유(단종/판매중지/재고부족)를 가려내는 데만 쓴다 — 원자 갱신은
+     * `false` 하나로만 답해서 이유를 구분하지 못한다.
+     */
+    fun ensureOrderable(quantity: Int) {
+        when (status) {
+            ProductStatus.DISCONTINUED -> throw ProductDiscontinuedException()
+            ProductStatus.ON_SALE -> Unit
+            ProductStatus.DRAFT, ProductStatus.SUSPENDED -> throw ProductNotOnSaleException()
+        }
+        if (!stockQuantity.isAtLeast(quantity)) {
+            throw InsufficientStockException(requireNotNull(id) { "저장된 상품이어야 한다" })
+        }
+    }
+
     fun changeDetails(
         name: ProductName,
         description: ProductDescription,
