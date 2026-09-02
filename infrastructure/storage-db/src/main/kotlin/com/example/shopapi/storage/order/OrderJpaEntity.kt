@@ -6,10 +6,12 @@ import com.example.shopapi.core.domain.order.OrderLine
 import com.example.shopapi.core.domain.order.OrderQuantity
 import com.example.shopapi.core.domain.product.ProductName
 import com.example.shopapi.core.enums.OrderStatus
+import com.example.shopapi.storage.shipping.ShippingAddressEmbeddable
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Embeddable
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -52,6 +54,8 @@ class OrderJpaEntity(
     @CollectionTable(name = "order_lines", joinColumns = [JoinColumn(name = "order_id")])
     @OrderColumn(name = "line_no")
     var lines: MutableList<OrderLineEmbeddable>,
+    @Embedded
+    var shippingAddress: ShippingAddressEmbeddable,
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: OrderStatus,
@@ -72,6 +76,7 @@ class OrderJpaEntity(
             id = requireNotNull(id) { "저장된 주문이어야 한다" },
             buyerId = buyerId,
             lines = lines.map { it.toDomain() },
+            shippingAddress = shippingAddress.toDomain(),
             status = status,
             createdAt = createdAt,
             updatedAt = updatedAt,
@@ -83,6 +88,7 @@ class OrderJpaEntity(
                 id = order.id,
                 buyerId = order.buyerId,
                 lines = order.lines.map { OrderLineEmbeddable.from(it) }.toMutableList(),
+                shippingAddress = ShippingAddressEmbeddable.from(order.shippingAddress),
                 status = order.status,
                 activePaymentId = null,
                 createdAt = order.createdAt,

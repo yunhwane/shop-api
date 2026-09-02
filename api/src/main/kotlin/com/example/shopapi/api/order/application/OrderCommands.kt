@@ -8,9 +8,19 @@ package com.example.shopapi.api.order.application
  */
 data class PlaceOrderCommand(
     val items: List<PlaceOrderItemCommand>,
+    val shippingAddress: ShippingAddressCommand,
 )
 
 data class PlaceOrderItemCommand(
     val productId: Long,
     val quantity: Int,
+)
+
+/** 배송지 입력. 주문마다 새로 받는다 - 재사용하는 주소록이 없다(ADR 0020) */
+data class ShippingAddressCommand(
+    val recipientName: String,
+    val phone: String,
+    val postalCode: String,
+    val addressLine1: String,
+    val addressLine2: String?,
 )

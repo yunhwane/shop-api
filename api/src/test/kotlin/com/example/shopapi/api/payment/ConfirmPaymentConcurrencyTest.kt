@@ -3,6 +3,7 @@ package com.example.shopapi.api.payment
 import com.example.shopapi.api.order.application.PlaceOrderCommand
 import com.example.shopapi.api.order.application.PlaceOrderItemCommand
 import com.example.shopapi.api.order.application.PlaceOrderService
+import com.example.shopapi.api.order.shippingAddressCommand
 import com.example.shopapi.api.payment.application.ConfirmPaymentCommand
 import com.example.shopapi.api.payment.application.ConfirmPaymentService
 import com.example.shopapi.api.payment.application.ReadyPaymentService
@@ -60,7 +61,11 @@ class ConfirmPaymentConcurrencyTest(
         val productId = onSaleProduct(5)
         val orderId =
             requireNotNull(
-                placeOrderService.place(buyerId, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)))).id,
+                placeOrderService
+                    .place(
+                        buyerId,
+                        PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+                    ).id,
             )
         val attempts = 10
         val paymentIds = (1..attempts).map { requireNotNull(readyPaymentService.ready(buyerId, orderId).payment.id) }

@@ -1,5 +1,6 @@
 package com.example.shopapi.api.payment
 
+import com.example.shopapi.api.order.SHIPPING_ADDRESS_JSON
 import com.example.shopapi.api.product.application.ProductManagementService
 import com.example.shopapi.api.product.application.ProductRegistrationService
 import com.example.shopapi.api.product.application.RegisterProductCommand
@@ -231,7 +232,9 @@ class PaymentFlowTest(
                     post("/api/v1/orders")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"items":[{"productId":$productId,"quantity":$quantity}]}"""),
+                        .content(
+                            """{"items":[{"productId":$productId,"quantity":$quantity}],$SHIPPING_ADDRESS_JSON}""",
+                        ),
                 ).andExpect(status().isCreated)
                 .andReturn()
                 .response.contentAsString

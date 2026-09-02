@@ -46,8 +46,10 @@ class OrderCancelConcurrencyTest(
         val orderId =
             requireNotNull(
                 placeOrderService
-                    .place(buyerId, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, quantity))))
-                    .id,
+                    .place(
+                        buyerId,
+                        PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, quantity)), shippingAddressCommand()),
+                    ).id,
             )
         val afterOrder = stockOf(productId)
         val attempts = 20

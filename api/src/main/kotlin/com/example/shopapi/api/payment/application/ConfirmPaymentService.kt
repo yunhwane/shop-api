@@ -12,12 +12,15 @@ import com.example.shopapi.core.domain.payment.TossOrderId
 import com.example.shopapi.core.domain.port.OrderRepository
 import com.example.shopapi.core.domain.port.PaymentGateway
 import com.example.shopapi.core.domain.port.PaymentRepository
+import com.example.shopapi.core.domain.port.ShipmentRepository
 import com.example.shopapi.core.domain.port.TimeProvider
+import com.example.shopapi.core.domain.shipping.Shipment
 import com.example.shopapi.core.enums.OrderStatus
 import com.example.shopapi.core.enums.PaymentStatus
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 /**
  * 결제 확정.
@@ -37,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional
 class ConfirmPaymentService(
     private val orders: OrderRepository,
     private val payments: PaymentRepository,
+    private val shipments: ShipmentRepository,
     private val paymentGateway: PaymentGateway,
     private val timeProvider: TimeProvider,
 ) {
@@ -113,7 +117,29 @@ class ConfirmPaymentService(
             return requireNotNull(current)
         }
 
+        prepareShipment(order, now)
         return order.pay(now)
+    }
+
+    /**
+     * 결제가 확정된 주문의 배송 준비를 만든다(ADR 0020). 이 주문의 배송 준비를 시작할
+     * 다른 행위자가 없어 여기서 만든다.
+     *
+     * **실패해도 던지지 않는다.** 앞의 세 쓰기(Toss 승인, `Payment` DONE, `Order` PAID)는
+     * 돈이 실제로 오갔다는 사실이고 이건 거기 곁달린 부수 효과다. 여기서 예외를 그대로
+     * 던지면 트랜잭션이 되감기면서, Toss 는 승인했는데 로컬에는 아무 기록도 없는 상태가
+     * 된다 - 부수 효과의 실패가 사실 자체를 지우게 두지 않는다.
+     */
+    private fun prepareShipment(
+        order: Order,
+        now: Instant,
+    ) {
+        val orderId = requireNotNull(order.id)
+        try {
+            shipments.save(Shipment.prepare(orderId, order.shippingAddress, now))
+        } catch (e: RuntimeException) {
+            log.error("결제는 확정됐지만 배송 준비를 만들지 못했다. 수동 확인이 필요하다. orderId={}", orderId, e)
+        }
     }
 
     /** [Money.of] 는 실패 시 필드명을 항상 `price` 로 담는다 - 이 메서드의 요청 필드인 `amount` 로 바꿔 던진다 */

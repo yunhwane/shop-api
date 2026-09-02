@@ -43,7 +43,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `취소 시각을 함께 저장한다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         val orderId = requireNotNull(order.id)
         val cancelledAt = order.createdAt.plusSeconds(60)
 
@@ -61,7 +65,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `PAID 일 때만 CANCELLED 로 전이한다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         val orderId = requireNotNull(order.id)
         val now = order.createdAt
         orders.markPaidIfPlaced(orderId, now)
@@ -76,7 +84,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `아직 아무도 선점하지 않은 PLACED 주문만 선점된다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         val orderId = requireNotNull(order.id)
         val now = order.createdAt
 
@@ -89,7 +101,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `놓아준 선점은 다른 결제 시도가 다시 잡을 수 있다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         val orderId = requireNotNull(order.id)
         val now = order.createdAt
         orders.claimPaymentIfPlaced(orderId, paymentId = 1L, now)
@@ -101,7 +117,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `자신이 선점하지 않은 결제 시도는 놓아줄 수 없다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         val orderId = requireNotNull(order.id)
         val now = order.createdAt
         orders.claimPaymentIfPlaced(orderId, paymentId = 1L, now)
@@ -121,7 +141,11 @@ class OrderRepositoryAdapterTest(
     @Test
     fun `이미 저장된 주문은 save 로 다시 저장할 수 없다`() {
         val productId = onSaleProduct(5)
-        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val order =
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
 
         assertFailsWith<InvalidDataAccessApiUsageException> { orders.save(order) }
     }

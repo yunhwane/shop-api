@@ -15,12 +15,11 @@ import org.springframework.http.MediaType
 import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
 import org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
-import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest
 import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse
 import org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
-import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
@@ -30,9 +29,9 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 
 /**
- * 결제 발급·확정의 API 문서를 만든다. 동작 검증은 api 모듈의 `PaymentFlowTest` 가 맡는다.
+ * 배송 조회의 API 문서를 만든다. 동작 검증은 api 모듈의 `ShipmentFlowTest` 가 맡는다.
  *
- * `payment.toss.provider=fake` 로 실제 Toss 호출 없이 문서를 만든다(ADR 0017).
+ * 배송 상태를 바꾸는 쪽은 컨트롤러가 없어 문서에도 나오지 않는다(ADR 0020).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -47,40 +46,63 @@ import kotlin.test.assertNotNull
         "security.rate-limit.verification-per-email.limit=1000",
     ],
 )
-class PaymentDocsTest(
+class ShipmentDocsTest(
     @param:Autowired private val mockMvc: MockMvc,
     @param:Autowired private val verifications: EmailVerificationRepository,
     @param:Autowired private val registrationService: ProductRegistrationService,
     @param:Autowired private val managementService: ProductManagementService,
 ) {
     @Test
-    fun `결제를 발급한다`() {
-        val token = signUpAndLogin("docspay1", "docs-pay1@example.com")
-        val orderId = placeOrder(token, onSaleProduct("문서용 결제 상품"))
+    fun `배송을 조회한다`() {
+        val token = signUpAndLogin("docsship1", "docs-ship1@example.com")
+        val orderId = paidOrder(token, onSaleProduct("문서용 배송 상품"))
 
         mockMvc
             .perform(
-                post("/api/v1/orders/{orderId}/payments", orderId)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token"),
+                get("/api/v1/orders/{orderId}/shipment", orderId).header(HttpHeaders.AUTHORIZATION, "Bearer $token"),
             ).andDo(
                 document(
-                    "payment-ready",
+                    "shipment-detail",
                     preprocessResponse(prettyPrint()),
                     requestHeaders(headerWithName(HttpHeaders.AUTHORIZATION).description("`Bearer {accessToken}`")),
                     pathParameters(parameterWithName("orderId").description("주문 식별자")),
                     responseFields(
-                        fieldWithPath("data.tossOrderId").description("Toss 결제창을 열 때 쓰는 결제 시도 식별자"),
-                        fieldWithPath("data.amount").description("결제할 금액. 원 단위 정수다"),
-                        fieldWithPath("data.orderName").description("결제창에 보여줄 주문 요약"),
+                        fieldWithPath("data.orderId").description("주문 식별자"),
+                        fieldWithPath("data.status").description("PREPARING / SHIPPING / DELIVERED"),
+                        fieldWithPath("data.shippingAddress.recipientName").description("수령인"),
+                        fieldWithPath("data.shippingAddress.phone").description("연락처"),
+                        fieldWithPath("data.shippingAddress.postalCode").description("우편번호"),
+                        fieldWithPath("data.shippingAddress.addressLine1").description("기본주소"),
+                        fieldWithPath("data.shippingAddress.addressLine2").description("상세주소. 없으면 null").optional(),
+                        fieldWithPath("data.shippedAt").description("발송 시각. 아직 발송 전이면 null").optional(),
+                        fieldWithPath("data.deliveredAt").description("배송 완료 시각. 완료 전이면 null").optional(),
+                        fieldWithPath("data.createdAt").description("배송이 만들어진 시각. 결제 확정 시점이다"),
                     ),
                 ),
             )
     }
 
-    @Test
-    fun `결제를 확정한다`() {
-        val token = signUpAndLogin("docspay2", "docs-pay2@example.com")
-        val orderId = placeOrder(token, onSaleProduct("문서용 확정 상품"))
+    /** 결제를 확정해야 배송이 생긴다(ADR 0020) */
+    private fun paidOrder(
+        token: String,
+        productId: Long,
+    ): Long {
+        val orderBody =
+            mockMvc
+                .perform(
+                    post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """{"items":[{"productId":$productId,"quantity":1}],""" +
+                                """"shippingAddress":{"recipientName":"전윤환","phone":"010-1234-5678",""" +
+                                """"postalCode":"04524","addressLine1":"서울 중구 세종대로 110","addressLine2":"5층"}}""",
+                        ),
+                ).andReturn()
+                .response.contentAsString
+        val orderId = Regex("\"id\":(\\d+)").find(orderBody)!!.groupValues[1].toLong()
+        val amount = Regex("\"totalAmount\":(\\d+)").find(orderBody)!!.groupValues[1].toLong()
+
         val readyBody =
             mockMvc
                 .perform(
@@ -90,63 +112,13 @@ class PaymentDocsTest(
                 .response.contentAsString
         val tossOrderId = extract(readyBody, "tossOrderId")
 
-        mockMvc
-            .perform(
-                post("/api/v1/orders/{orderId}/payments/confirm", orderId)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """{"tossOrderId":"$tossOrderId","paymentKey":"docs-payment-key","amount":39000}""",
-                    ),
-            ).andDo(
-                document(
-                    "payment-confirm",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    requestHeaders(headerWithName(HttpHeaders.AUTHORIZATION).description("`Bearer {accessToken}`")),
-                    pathParameters(parameterWithName("orderId").description("주문 식별자")),
-                    requestFields(
-                        fieldWithPath("tossOrderId").description("발급 시 받은 결제 시도 식별자"),
-                        fieldWithPath("paymentKey").description("Toss 결제창이 돌려준 결제 키"),
-                        fieldWithPath("amount")
-                            .description("결제창에서 승인된 금액. 서버가 기록해 둔 금액과 다르면 거절한다"),
-                    ),
-                    responseFields(
-                        fieldWithPath("data.id").description("주문 식별자"),
-                        fieldWithPath("data.status").description("PLACED / PAID / CANCELLED"),
-                        fieldWithPath("data.totalAmount").description("라인 합계. 원 단위 정수다"),
-                        fieldWithPath("data.lines[].productId").description("상품 식별자"),
-                        fieldWithPath("data.lines[].productName").description("주문 시점의 상품명 스냅샷"),
-                        fieldWithPath("data.lines[].unitPrice").description("주문 시점의 단가 스냅샷"),
-                        fieldWithPath("data.lines[].quantity").description("수량"),
-                        fieldWithPath("data.lines[].lineTotal").description("단가 × 수량"),
-                        fieldWithPath("data.shippingAddress.recipientName").description("수령인"),
-                        fieldWithPath("data.shippingAddress.phone").description("연락처"),
-                        fieldWithPath("data.shippingAddress.postalCode").description("우편번호"),
-                        fieldWithPath("data.shippingAddress.addressLine1").description("기본주소"),
-                        fieldWithPath("data.shippingAddress.addressLine2").description("상세주소. 없으면 null").optional(),
-                        fieldWithPath("data.createdAt").description("주문 시각"),
-                    ),
-                ),
-            )
-    }
-
-    private fun placeOrder(
-        token: String,
-        productId: Long,
-    ): Long {
-        val body =
-            mockMvc
-                .perform(
-                    post("/api/v1/orders")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                            """{"items":[{"productId":$productId,"quantity":1}],"shippingAddress":{"recipientName":"전윤환","phone":"010-1234-5678","postalCode":"04524","addressLine1":"서울 중구 세종대로 110","addressLine2":"5층"}}""",
-                        ),
-                ).andReturn()
-                .response.contentAsString
-        return Regex("\"id\":(\\d+)").find(body)!!.groupValues[1].toLong()
+        mockMvc.perform(
+            post("/api/v1/orders/{orderId}/payments/confirm", orderId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"tossOrderId":"$tossOrderId","paymentKey":"docs-key-$orderId","amount":$amount}"""),
+        )
+        return orderId
     }
 
     private fun draftProduct(name: String): Long =

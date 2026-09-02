@@ -3,6 +3,7 @@ package com.example.shopapi.api.payment
 import com.example.shopapi.api.order.application.PlaceOrderCommand
 import com.example.shopapi.api.order.application.PlaceOrderItemCommand
 import com.example.shopapi.api.order.application.PlaceOrderService
+import com.example.shopapi.api.order.shippingAddressCommand
 import com.example.shopapi.api.payment.application.ReadyPaymentService
 import com.example.shopapi.api.product.application.ProductManagementService
 import com.example.shopapi.api.product.application.ProductRegistrationService
@@ -127,7 +128,10 @@ class PaymentRepositoryAdapterTest(
     private fun readyPayment(): Payment {
         val productId = onSaleProduct(5)
         val order =
-            placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+            placeOrderService.place(
+                1L,
+                PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1)), shippingAddressCommand()),
+            )
         return readyPaymentService.ready(1L, requireNotNull(order.id)).payment
     }
 
