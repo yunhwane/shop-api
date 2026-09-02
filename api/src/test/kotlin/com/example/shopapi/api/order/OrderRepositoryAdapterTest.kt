@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.InvalidDataAccessApiUsageException
 import org.springframework.test.context.TestPropertySource
+import java.time.temporal.ChronoUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,6 +34,11 @@ class OrderRepositoryAdapterTest(
     @param:Autowired private val managementService: ProductManagementService,
     @param:Autowired private val placeOrderService: PlaceOrderService,
 ) {
+    /**
+     * 초 단위로 잘라 비교한다. DB 컬럼의 소수점 이하 정밀도는 방언·모드마다 달라
+     * (H2 를 MySQL 호환 모드로 쓴다) 왕복하면서 그 아래 자리가 잘릴 수 있다 - 이 테스트가
+     * 확인하려는 것은 그 정밀도가 아니라 취소 시각이 실제로 쓰였는가다.
+     */
     @Test
     fun `취소 시각을 함께 저장한다`() {
         val productId = onSaleProduct(5)
@@ -43,8 +49,11 @@ class OrderRepositoryAdapterTest(
         assertEquals(true, orders.cancelIfPlaced(orderId, cancelledAt))
 
         val reloaded = assertNotNull(orders.findById(orderId))
-        assertEquals(cancelledAt, reloaded.updatedAt)
-        assertNotEquals(reloaded.createdAt, reloaded.updatedAt)
+        assertEquals(cancelledAt.truncatedTo(ChronoUnit.SECONDS), reloaded.updatedAt.truncatedTo(ChronoUnit.SECONDS))
+        assertNotEquals(
+            reloaded.createdAt.truncatedTo(ChronoUnit.SECONDS),
+            reloaded.updatedAt.truncatedTo(ChronoUnit.SECONDS),
+        )
     }
 
     /**
