@@ -13,6 +13,7 @@ dependencies {
     testImplementation(project(":infrastructure:storage-db"))
     testImplementation(project(":infrastructure:security"))
     testImplementation(project(":infrastructure:client-mail"))
+    testImplementation(project(":infrastructure:client-payment-toss"))
     testImplementation(project(":api"))
 
     testImplementation(libs.archunit.junit5)

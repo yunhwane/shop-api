@@ -20,13 +20,15 @@ import org.springframework.web.client.RestClientException
 @ConditionalOnProperty(prefix = "mail", name = ["provider"], havingValue = "resend", matchIfMissing = true)
 internal class ResendMailSender(
     private val properties: MailProperties,
-    private val restClient: RestClient,
+    // 파라미터 이름이 빈 이름(mailRestClient)과 같아야 한다 - client-payment-toss 가
+    // 생기면서 RestClient 빈이 mailRestClient/tossRestClient 둘이 됐다(ADR 0017).
+    private val mailRestClient: RestClient,
 ) : MailSender {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun send(mail: Mail) {
         try {
-            restClient
+            mailRestClient
                 .post()
                 .uri(properties.resend.endpoint)
                 .header("Authorization", "Bearer ${properties.resend.apiKey}")

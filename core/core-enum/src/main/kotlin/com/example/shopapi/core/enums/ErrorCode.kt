@@ -54,6 +54,19 @@ enum class ErrorCode(
     /** 이미 취소됐거나 취소할 수 없는 상태다 */
     ORDER_NOT_CANCELLABLE("취소할 수 없는 주문입니다."),
 
+    /** 이미 결제됐거나 취소된 주문에 결제를 시작·확정하려 했다(ADR 0017) */
+    ORDER_NOT_PAYABLE("결제할 수 없는 주문입니다."),
+
+    PAYMENT_NOT_FOUND("결제 정보를 찾을 수 없습니다."),
+
+    /** 클라이언트가 보낸 금액이 서버가 기록해 둔 결제 금액과 다르다 */
+    PAYMENT_AMOUNT_MISMATCH("결제 금액이 일치하지 않습니다."),
+
+    /** 이미 완료됐거나 실패해 다시 확정할 수 없는 결제 시도다 */
+    PAYMENT_NOT_READY("확정할 수 없는 결제입니다."),
+
+    PAYMENT_CONFIRM_FAILED("결제 승인에 실패했습니다. 잠시 후 다시 시도해 주세요."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }

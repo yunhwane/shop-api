@@ -22,11 +22,14 @@ object Packages {
     /** infrastructure:client-mail */
     const val CLIENT_MAIL = "$ROOT.client.mail.."
 
+    /** infrastructure:client-payment-toss */
+    const val CLIENT_PAYMENT_TOSS = "$ROOT.client.payment.toss.."
+
     /**
      * 인프라 어댑터 전체.
      *
      * api 는 이들 중 어느 것도 컴파일 타임에 참조하지 않는다. 새 어댑터 모듈을 만들면
      * 여기에 추가해야 규칙이 함께 걸린다.
      */
-    val INFRASTRUCTURE = arrayOf(STORAGE, SECURITY, CLIENT_MAIL)
+    val INFRASTRUCTURE = arrayOf(STORAGE, SECURITY, CLIENT_MAIL, CLIENT_PAYMENT_TOSS)
 }

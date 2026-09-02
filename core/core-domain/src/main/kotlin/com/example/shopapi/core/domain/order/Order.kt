@@ -9,7 +9,8 @@ import java.time.Instant
 /**
  * 장바구니식 주문. 여러 [OrderLine] 을 담는다.
  *
- * 결제·배송 상태를 두지 않는다. `PLACED` → `CANCELLED` 뿐이다(ADR 0016).
+ * `PLACED` 에서 `PAID`(결제 확정, ADR 0017) 또는 `CANCELLED`(ADR 0016) 로만 전이한다.
+ * `PAID` 에서는 전이가 없다 - 배송 상태는 아직 두지 않는다.
  */
 class Order private constructor(
     val id: Long?,
@@ -35,12 +36,33 @@ class Order private constructor(
      * 여기서 하는 검사는 [OrderRepository.cancelIfPlaced] 로 원자 갱신하기 전의 사전
      * 확인이다. 동시에 들어온 취소 요청 두 개가 이 검사를 둘 다 통과할 수 있으므로, 실제
      * 전이 성공 여부는 그 원자 갱신의 반환값으로 다시 확인해야 한다(ADR 0016).
+     *
+     * `PAID` 도 이 검사 하나로 걸러진다 - 결제 완료 주문은 취소할 수 없다(ADR 0017).
      */
     fun cancel(now: Instant): Order {
         if (status != OrderStatus.PLACED) {
             throw OrderNotCancellableException()
         }
         return Order(id, buyerId, lines, OrderStatus.CANCELLED, createdAt, now)
+    }
+
+    /**
+     * 결제 시작이 가능한 상태인지 미리 확인한다. Toss 를 부르기 전, 결제 시도를
+     * 만들기 전에 쓴다.
+     */
+    fun ensurePayable() {
+        if (status != OrderStatus.PLACED) {
+            throw OrderNotPayableException()
+        }
+    }
+
+    /**
+     * 결제 확정 반영. [OrderRepository.markPaidIfPlaced] 로 원자 갱신하기 전의 사전
+     * 확인이라는 점은 [cancel] 과 같다(ADR 0017).
+     */
+    fun pay(now: Instant): Order {
+        ensurePayable()
+        return Order(id, buyerId, lines, OrderStatus.PAID, createdAt, now)
     }
 
     override fun toString(): String = "Order(id=$id, buyerId=$buyerId, status=$status)"

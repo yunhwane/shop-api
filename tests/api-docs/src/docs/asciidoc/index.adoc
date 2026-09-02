@@ -58,6 +58,11 @@ HTTP 상태만으로는 구분되지 않는 경우가 있다. `409` 하나에 �
 | `PRODUCT_DISCONTINUED` | 409 | 단종된 상품이다
 | `INSUFFICIENT_STOCK` | 409 | 주문 시점에 재고가 모자란다
 | `ORDER_NOT_CANCELLABLE` | 409 | 이미 취소됐거나 취소할 수 없는 상태다
+| `ORDER_NOT_PAYABLE` | 409 | 이미 결제됐거나 취소된 주문에 결제를 시작·확정하려 했다
+| `PAYMENT_NOT_FOUND` | 404 | `tossOrderId` 로 결제 시도를 찾지 못했다
+| `PAYMENT_AMOUNT_MISMATCH` | 400 | 클라이언트가 보낸 금액이 발급 시점에 기록된 금액과 다르다
+| `PAYMENT_NOT_READY` | 409 | 이미 완료됐거나 실패해 다시 확정할 수 없는 결제 시도다
+| `PAYMENT_CONFIRM_FAILED` | 502 | Toss 승인 호출이 실패했다
 | `INVALID_CREDENTIALS` | 401 | 아이디가 없거나 비밀번호가 틀렸다. 둘을 구분하지 않는다
 | `INVALID_REFRESH_TOKEN` | 401 | 리프레시 토큰이 없거나 기한이 지났다
 | `REFRESH_TOKEN_REUSED` | 401 | 이미 쓴 리프레시 토큰이 다시 왔다. 모든 기기에서 로그아웃된다
@@ -217,7 +222,8 @@ operation::user-me[snippets='http-request,request-headers,http-response,response
 로 답한다 — 순차 발급되는 주문 식별자로 타인의 주문 존재 여부를 추측하지 못하게
 하기 위해서다.
 
-상태는 `PLACED` 와 `CANCELLED` 뿐이다. 결제·배송은 아직 이 API 의 범위가 아니다.
+상태는 `PLACED`, `PAID`, `CANCELLED` 세 가지다. `PAID` 는 <<payments,결제>> 가 확정됐을 때만
+붙는다. 배송은 아직 이 API 의 범위가 아니다.
 
 [[orders-place]]
 === 주문 생성
@@ -258,6 +264,34 @@ operation::order-cancel[snippets='http-request,request-headers,path-parameters,h
 두 실패를 구분해서 알려주지 않는다.
 
 operation::error-insufficient-stock[snippets='http-response,response-fields']
+
+[[payments]]
+== 결제
+
+카드 결제만 지원한다. Toss 결제창(위젯)이 승인한 뒤, 클라이언트가 받아온 값으로
+서버가 승인을 한 번 더 확정하는 흐름이다. 가상계좌·부분 환불·웹훅은 이 범위에 없다.
+
+`PLACED` 상태의 본인 주문에만 결제를 발급·확정할 수 있다. 이미 결제됐거나 취소된
+주문에 발급을 시도하면 `409 ORDER_NOT_PAYABLE` 이다.
+
+[[payments-ready]]
+=== 결제 발급
+
+`tossOrderId` 는 결제 시도마다 새로 발급된다. 이 값과 `amount` 로 Toss 결제창을 연다.
+
+operation::payment-ready[snippets='http-request,request-headers,path-parameters,http-response,response-fields']
+
+[[payments-confirm]]
+=== 결제 확정
+
+결제창에서 돌아온 `tossOrderId`/`paymentKey`/`amount` 를 그대로 보낸다. `amount` 는
+신뢰하지 않는다 — 발급 시점에 서버가 기록해 둔 금액과 다르면 Toss 를 부르지 않고
+`400 PAYMENT_AMOUNT_MISMATCH` 로 거절한다. 이미 확정된 시도에 같은 `paymentKey` 로
+다시 요청하면 Toss 를 다시 부르지 않고 같은 결과를 멱등하게 돌려준다.
+
+성공하면 주문이 `PAID` 로 바뀐다.
+
+operation::payment-confirm[snippets='http-request,request-headers,path-parameters,request-fields,http-response,response-fields']
 
 [[errors]]
 == 실패 응답 예시

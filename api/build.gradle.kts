@@ -11,6 +11,7 @@ dependencies {
     runtimeOnly(project(":infrastructure:storage-db"))
     runtimeOnly(project(":infrastructure:security"))
     runtimeOnly(project(":infrastructure:client-mail"))
+    runtimeOnly(project(":infrastructure:client-payment-toss"))
 
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("tools.jackson.module:jackson-module-kotlin")

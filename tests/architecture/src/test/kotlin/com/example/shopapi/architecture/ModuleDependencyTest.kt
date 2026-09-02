@@ -2,6 +2,7 @@ package com.example.shopapi.architecture
 
 import com.example.shopapi.architecture.Packages.API
 import com.example.shopapi.architecture.Packages.CLIENT_MAIL
+import com.example.shopapi.architecture.Packages.CLIENT_PAYMENT_TOSS
 import com.example.shopapi.architecture.Packages.CORE
 import com.example.shopapi.architecture.Packages.CORE_DOMAIN
 import com.example.shopapi.architecture.Packages.CORE_ENUM
@@ -128,6 +129,8 @@ class ModuleDependencyTest {
             .definedBy(SECURITY)
             .layer("client-mail")
             .definedBy(CLIENT_MAIL)
+            .layer("client-payment-toss")
+            .definedBy(CLIENT_PAYMENT_TOSS)
             .layer("api")
             .definedBy(API)
             .whereLayer("api")
@@ -138,10 +141,19 @@ class ModuleDependencyTest {
             .mayNotBeAccessedByAnyLayer()
             .whereLayer("client-mail")
             .mayNotBeAccessedByAnyLayer()
+            .whereLayer("client-payment-toss")
+            .mayNotBeAccessedByAnyLayer()
             .whereLayer("core-domain")
-            .mayOnlyBeAccessedByLayers("storage", "security", "client-mail", "api")
+            .mayOnlyBeAccessedByLayers("storage", "security", "client-mail", "client-payment-toss", "api")
             .whereLayer("core-enum")
-            .mayOnlyBeAccessedByLayers("core-domain", "storage", "security", "client-mail", "api")
+            .mayOnlyBeAccessedByLayers(
+                "core-domain",
+                "storage",
+                "security",
+                "client-mail",
+                "client-payment-toss",
+                "api",
+            )
 
     @ArchTest
     val `모듈 간 순환 의존이 없다`: ArchRule =
