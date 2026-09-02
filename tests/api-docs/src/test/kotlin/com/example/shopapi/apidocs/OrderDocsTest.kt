@@ -179,7 +179,7 @@ class OrderDocsTest(
     private fun orderFields(prefix: String = "data") =
         listOf(
             fieldWithPath("$prefix.id").description("주문 식별자"),
-            fieldWithPath("$prefix.status").description("PLACED / CANCELLED"),
+            fieldWithPath("$prefix.status").description("PLACED / PAID / CANCELLED"),
             fieldWithPath("$prefix.totalAmount").description("라인 합계. 원 단위 정수다"),
             fieldWithPath("$prefix.lines[].productId").description("상품 식별자"),
             fieldWithPath("$prefix.lines[].productName").description("주문 시점의 상품명 스냅샷"),

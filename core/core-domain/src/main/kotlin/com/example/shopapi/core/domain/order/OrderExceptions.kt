@@ -12,3 +12,6 @@ import com.example.shopapi.core.enums.ErrorCode
 class OrderNotFoundException : DomainException(ErrorCode.ORDER_NOT_FOUND)
 
 class OrderNotCancellableException : DomainException(ErrorCode.ORDER_NOT_CANCELLABLE)
+
+/** 이미 결제됐거나 취소된 주문에 결제를 시작·확정하려 했다(ADR 0017) */
+class OrderNotPayableException : DomainException(ErrorCode.ORDER_NOT_PAYABLE)

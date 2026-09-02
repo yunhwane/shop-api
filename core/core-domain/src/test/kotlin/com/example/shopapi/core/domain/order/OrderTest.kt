@@ -96,6 +96,36 @@ class OrderTest {
         assertFailsWith<OrderNotCancellableException> { cancelled.cancel(later.plusSeconds(60)) }
     }
 
+    @Test
+    fun `결제하면 상태와 갱신 시각이 바뀐다`() {
+        val paid = Order.place(buyerId = 1L, lines = listOf(line()), now = now).pay(later)
+
+        assertEquals(OrderStatus.PAID, paid.status)
+        assertEquals(now, paid.createdAt)
+        assertEquals(later, paid.updatedAt)
+    }
+
+    @Test
+    fun `이미 결제된 주문은 다시 결제할 수 없다`() {
+        val paid = Order.place(buyerId = 1L, lines = listOf(line()), now = now).pay(later)
+
+        assertFailsWith<OrderNotPayableException> { paid.pay(later.plusSeconds(60)) }
+    }
+
+    @Test
+    fun `결제 완료 주문은 취소할 수 없다`() {
+        val paid = Order.place(buyerId = 1L, lines = listOf(line()), now = now).pay(later)
+
+        assertFailsWith<OrderNotCancellableException> { paid.cancel(later.plusSeconds(60)) }
+    }
+
+    @Test
+    fun `취소된 주문은 결제할 수 없다`() {
+        val cancelled = Order.place(buyerId = 1L, lines = listOf(line()), now = now).cancel(later)
+
+        assertFailsWith<OrderNotPayableException> { cancelled.pay(later.plusSeconds(60)) }
+    }
+
     /** 서버 데이터 문제를 클라이언트 입력 탓으로 돌리지 않는다(ADR 0007) */
     @Test
     fun `복원한 총액이 상한을 넘으면 저장된 값 문제로 답한다`() {

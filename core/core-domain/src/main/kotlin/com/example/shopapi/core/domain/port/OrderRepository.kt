@@ -43,4 +43,17 @@ interface OrderRepository {
         id: Long,
         now: Instant,
     ): Boolean
+
+    /**
+     * `PLACED` 일 때만 `PAID` 로 전이하며 [now] 를 `updatedAt` 에 함께 쓰고, 전이했는지
+     * 알려준다(ADR 0017).
+     *
+     * 호출 시점에는 이미 Toss 승인이 끝나 있다. `false` 는 그 사이 주문이 취소돼 버렸다는
+     * 뜻이라 - 결제는 됐는데 주문은 `PAID` 가 아닌 상태가 된다. 호출자는 이 경우를
+     * 조용히 넘기지 말고 남겨야 한다.
+     */
+    fun markPaidIfPlaced(
+        id: Long,
+        now: Instant,
+    ): Boolean
 }
