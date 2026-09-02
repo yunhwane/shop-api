@@ -22,13 +22,16 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * 결제 확정.
  *
- * Toss 승인 호출 앞에 두 방어선을 둔다 - 금액 대조([verifyAmount][com.example.shopapi.core.domain.payment.Payment.verifyAmount])와
- * 이미 `DONE` 인 시도에 대한 멱등 처리다(ADR 0017).
+ * Toss 승인 호출 앞에 세 방어선을 둔다 - 금액 대조([verifyAmount][com.example.shopapi.core.domain.payment.Payment.verifyAmount]),
+ * 이미 `DONE` 인 시도에 대한 멱등 처리(ADR 0017), 그리고 같은 주문의 다른 시도가 이미
+ * Toss 승인을 진행 중이면 이 시도는 아예 Toss 를 부르지 않는 선점(ADR 0019)이다.
  *
  * [PaymentConfirmFailedException] 을 `noRollbackFor` 로 막아 둔다. Toss 가 거절했을 때
  * [markFailedIfReady][com.example.shopapi.core.domain.port.PaymentRepository.markFailedIfReady]
- * 로 남긴 `FAILED` 기록까지 롤백되면, `TokenReissueService` 가 `noRollbackFor` 없이 리프레시
- * 토큰 폐기를 롤백당했던 것과 같은 모양으로 이 결제 시도가 영영 `READY` 에 갇힌다.
+ * 로 남긴 `FAILED` 기록과
+ * [releaseClaimedPayment][com.example.shopapi.core.domain.port.OrderRepository.releaseClaimedPayment]
+ * 로 놓아준 선점까지 롤백되면, `TokenReissueService` 가 `noRollbackFor` 없이 리프레시
+ * 토큰 폐기를 롤백당했던 것과 같은 모양으로 이 주문의 모든 후속 결제 시도가 영영 막힌다.
  */
 @Service
 class ConfirmPaymentService(
@@ -69,20 +72,28 @@ class ConfirmPaymentService(
         payment.verifyAmount(parseAmount(command.amount))
         order.ensurePayable()
 
+        if (!orders.claimPaymentIfPlaced(orderId, paymentId, timeProvider.now())) {
+            // 같은 주문의 다른 결제 시도가 이미 이 주문을 선점했다 - Toss 를 부르지
+            // 않고 거절한다(ADR 0019).
+            throw PaymentNotReadyException()
+        }
+
         val paymentKey = PaymentKey.of(command.paymentKey)
         val confirmation =
             try {
                 paymentGateway.confirm(paymentKey, tossOrderId, payment.amount)
             } catch (e: PaymentConfirmFailedException) {
                 payments.markFailedIfReady(paymentId, timeProvider.now())
+                orders.releaseClaimedPayment(orderId, paymentId, timeProvider.now())
                 throw e
             }
 
         val now = timeProvider.now()
         if (!payments.markDoneIfReady(paymentId, paymentKey, confirmation.approvedAt, now)) {
-            // 동시에 들어온 다른 확정 요청이 먼저 DONE 으로 전이시켰다. Toss 는 이미
-            // 승인했으니 여기서 실패로 답하지 않고 그대로 진행한다 - cancelIfPlaced 와
-            // 같은 조건부 원자 갱신 규약이다(ADR 0016).
+            // 동시에 들어온 다른 확정 요청이 먼저 DONE 으로 전이시켰다. claimPaymentIfPlaced
+            // 가 이 주문을 이 결제 시도에게 독점시켰으므로 정상적으로는 일어나지 않는다
+            // (ADR 0019). Toss 는 이미 승인했으니 여기서 실패로 답하지 않고 그대로
+            // 진행한다 - cancelIfPlaced 와 같은 조건부 원자 갱신 규약이다(ADR 0016).
             log.warn("이미 처리된 결제 시도에 대한 뒤늦은 확정. paymentId={}", paymentId)
         }
 

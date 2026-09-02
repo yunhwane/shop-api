@@ -8,7 +8,8 @@ import java.time.Instant
  *
  * [cancelIfPlaced] 가 따로 있는 이유는 `ProductRepository.decreaseStockIfEnough` 와 같다
  * (ADR 0014). `save` 로 상태를 덮어쓰면 동시에 들어온 취소 요청 두 개가 둘 다 통과해
- * 재고를 두 번 복원하는 경합이 생긴다(ADR 0016).
+ * 재고를 두 번 복원하는 경합이 생긴다(ADR 0016). [claimPaymentIfPlaced] 는 같은 도구를
+ * 결제 확정 순서 보장에 쓴다(ADR 0019).
  */
 interface OrderRepository {
     /**
@@ -67,6 +68,35 @@ interface OrderRepository {
      */
     fun cancelIfPaid(
         id: Long,
+        now: Instant,
+    ): Boolean
+
+    /**
+     * `PLACED` 이고 아직 아무 결제 시도도 선점하지 않았을 때만 이 주문을 [paymentId] 에게
+     * 선점시키며, 전이했는지 알려준다(ADR 0019).
+     *
+     * Toss 를 부르기 전에 반드시 이 선점을 먼저 얻어야 한다. 같은 주문에 걸린 서로 다른
+     * 결제 시도 두 개가 동시에 confirm 되면, DB 상태가 아니라 Toss 가 각각을 실제로
+     * 승인해 버려 이중 결제로 이어진다. 이 선점은 주문 행 하나를 두고 겨루는 진짜
+     * 단일 행 CAS 라 - 결제 시도 쪽 행을 서로 다른 두 개로 나눠 거는 방식과 달리 -
+     * 표준 행 잠금만으로 정확히 하나만 통과한다.
+     */
+    fun claimPaymentIfPlaced(
+        id: Long,
+        paymentId: Long,
+        now: Instant,
+    ): Boolean
+
+    /**
+     * 이 주문을 선점하고 있는 결제 시도가 [paymentId] 일 때만 선점을 풀어주며, 풀었는지
+     * 알려준다(ADR 0019).
+     *
+     * Toss 호출이 실패했을 때 부른다 - 풀어주지 않으면 이 주문의 모든 후속 결제 시도가
+     * [claimPaymentIfPlaced] 에서 영원히 막힌다.
+     */
+    fun releaseClaimedPayment(
+        id: Long,
+        paymentId: Long,
         now: Instant,
     ): Boolean
 }

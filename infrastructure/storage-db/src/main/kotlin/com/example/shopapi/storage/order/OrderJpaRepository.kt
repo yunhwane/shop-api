@@ -69,4 +69,37 @@ internal interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
         @Param("next") next: OrderStatus,
         @Param("now") now: Instant,
     ): Int
+
+    /**
+     * `status = :placed` 이고 `activePaymentId` 가 비어 있을 때만 [paymentId] 에게
+     * 선점시킨다. 진짜 단일 행 CAS 다(ADR 0019) - 결제 시도 쪽 행을 서로 다른 두 개로
+     * 나눠 걸었던 첫 시도(서브쿼리로 형제 행을 보는 방식)는 READ_COMMITTED 에서 두
+     * 트랜잭션이 서로의 미커밋 상태를 보지 못해 둘 다 통과해 버렸다 - 이 메서드는 항상
+     * 같은 주문 행 하나를 두고 겨루므로 표준 행 잠금만으로 정확히 하나만 통과한다.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        "update OrderJpaEntity o set o.activePaymentId = :paymentId, o.updatedAt = :now " +
+            "where o.id = :id and o.status = :placed and o.activePaymentId is null",
+    )
+    fun claimPaymentIfPlaced(
+        @Param("id") id: Long,
+        @Param("paymentId") paymentId: Long,
+        @Param("placed") placed: OrderStatus,
+        @Param("now") now: Instant,
+    ): Int
+
+    /** 이 주문을 선점 중인 결제 시도가 [paymentId] 일 때만 선점을 풀어준다(ADR 0019) */
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        "update OrderJpaEntity o set o.activePaymentId = null, o.updatedAt = :now " +
+            "where o.id = :id and o.activePaymentId = :paymentId",
+    )
+    fun releaseClaimedPayment(
+        @Param("id") id: Long,
+        @Param("paymentId") paymentId: Long,
+        @Param("now") now: Instant,
+    ): Int
 }

@@ -9,7 +9,10 @@ import java.time.Instant
  * 결제 시도 저장소.
  *
  * [markDoneIfReady] / [markFailedIfReady] 가 따로 있는 이유는 `OrderRepository.cancelIfPlaced`
- * 와 같다(ADR 0016, ADR 0017) - 상태 전이는 조건부 원자 갱신으로만 한다.
+ * 와 같다(ADR 0016, ADR 0017) - 상태 전이는 조건부 원자 갱신으로만 한다. 같은 주문의
+ * 서로 다른 결제 시도가 동시에 Toss 승인을 받는 경합은 이 저장소가 아니라
+ * `OrderRepository.claimPaymentIfPlaced` 가 막는다(ADR 0019) - `Payment` 자신의 상태
+ * 전이는 그 선점과 무관하게 그대로다.
  */
 interface PaymentRepository {
     /**
@@ -33,9 +36,9 @@ interface PaymentRepository {
      *
      * 정상 경로에서는 한 주문에 `DONE` 결제가 최대 하나다 - `ready` 는 주문이 `PLACED`
      * 일 때만 되므로, `PAID` 로 옮겨간 뒤에는 새 결제 시도가 생기지 않는다. 동시
-     * `confirm` 두 개가 서로 다른 시도를 각각 `DONE` 으로 만드는 좁은 경합(ADR 0017)이
-     * 실제로 일어나면 이 메서드는 그 중 하나만 돌려준다 - 나머지는 이번 범위에서
-     * 다루지 않는다(ADR 0018).
+     * `confirm` 두 개가 서로 다른 시도를 각각 `DONE` 으로 만드는 경합은
+     * `OrderRepository.claimPaymentIfPlaced` 가 막지만(ADR 0019), 혹시라도 이 전제가
+     * 깨지면 이 메서드는 그 중 하나만 돌려준다 - 나머지는 조용히 남는다.
      */
     fun findDoneByOrderId(orderId: Long): Payment?
 

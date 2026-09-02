@@ -55,6 +55,13 @@ class OrderJpaEntity(
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: OrderStatus,
+    /**
+     * 이 주문의 확정을 선점한 결제 시도의 id. `Order` 도메인 모델에는 없는, 순수하게
+     * 동시 확정 방지를 위한 컬럼이다(ADR 0019) - [claimPaymentIfPlaced]/[releaseClaimedPayment]
+     * 만 건드린다.
+     */
+    @Column(name = "active_payment_id")
+    var activePaymentId: Long?,
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
     @Column(name = "updated_at", nullable = false)
@@ -77,6 +84,7 @@ class OrderJpaEntity(
                 buyerId = order.buyerId,
                 lines = order.lines.map { OrderLineEmbeddable.from(it) }.toMutableList(),
                 status = order.status,
+                activePaymentId = null,
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
             )
