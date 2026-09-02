@@ -30,6 +30,23 @@ class ProductTest {
             now = now,
         )
 
+    /** [InsufficientStockException] 이 [Product.id] 를 요구해서, 저장된 상품을 흉내내는 헬퍼가 따로 필요하다 */
+    private fun sellableProduct(
+        stock: Int,
+        id: Long = 1L,
+    ): Product =
+        Product(
+            id = id,
+            name = ProductName.of("옥스퍼드 셔츠"),
+            description = ProductDescription.of("면 100%"),
+            price = Money.of(39_000),
+            category = ProductCategory.FASHION,
+            stockQuantity = StockQuantity.of(stock),
+            status = ProductStatus.ON_SALE,
+            createdAt = now,
+            updatedAt = now,
+        )
+
     @Test
     fun `등록은 DRAFT 로 시작한다`() {
         val product = product()
@@ -122,6 +139,29 @@ class ProductTest {
         assertEquals(true, selling.canFulfill(5))
         assertEquals(false, selling.canFulfill(6))
         assertEquals(false, selling.canFulfill(0))
+    }
+
+    @Test
+    fun `판매 중이 아니면 주문할 수 없다`() {
+        assertFailsWith<ProductNotOnSaleException> { product(stock = 5).ensureOrderable(1) }
+        assertFailsWith<ProductNotOnSaleException> {
+            product(stock = 5).startSelling(later).suspendSelling(later).ensureOrderable(1)
+        }
+    }
+
+    @Test
+    fun `단종된 상품은 주문할 수 없다`() {
+        val discontinued = product(stock = 5).startSelling(later).discontinue(later)
+
+        assertFailsWith<ProductDiscontinuedException> { discontinued.ensureOrderable(1) }
+    }
+
+    @Test
+    fun `재고보다 많은 수량은 주문할 수 없다`() {
+        val selling = sellableProduct(stock = 5)
+
+        assertFailsWith<InsufficientStockException> { selling.ensureOrderable(6) }
+        selling.ensureOrderable(5)
     }
 
     /** 로그에 상품이 찍혀도 설명 전문과 가격이 함께 새지 않아야 한다. */

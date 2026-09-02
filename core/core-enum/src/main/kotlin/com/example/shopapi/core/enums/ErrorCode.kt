@@ -45,6 +45,15 @@ enum class ErrorCode(
     /** 단종은 종단 상태다. 되돌릴 수 없다(ADR 0011) */
     PRODUCT_DISCONTINUED("단종된 상품입니다."),
 
+    /** 주문 시점에 상품 재고가 부족하다. 판매 중이 아님/단종과는 별개 사유다 */
+    INSUFFICIENT_STOCK("재고가 부족합니다."),
+
+    /** 본인 주문이 아닌 경우도 이 코드로 응답한다. 존재 자체를 드러내지 않는다(ADR 0016) */
+    ORDER_NOT_FOUND("주문을 찾을 수 없습니다."),
+
+    /** 이미 취소됐거나 취소할 수 없는 상태다 */
+    ORDER_NOT_CANCELLABLE("취소할 수 없는 주문입니다."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }

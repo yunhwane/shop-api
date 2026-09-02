@@ -50,9 +50,14 @@ HTTP 상태만으로는 구분되지 않는 경우가 있다. `409` 하나에 �
 | `INVALID_VERIFICATION_TOKEN` | 400 | 메일 링크의 토큰으로 아무것도 찾지 못했다
 | `VERIFICATION_NOT_FOUND` | 404 | `verificationId` 로 인증을 찾지 못했다
 | `PRODUCT_NOT_FOUND` | 404 | 상품이 없거나, 아직 공개되지 않았거나, 단종됐다
+| `ORDER_NOT_FOUND` | 404 | 주문이 없거나, 있어도 본인 소유가 아니다
 | `DUPLICATE_USER_ID` | 409 | 이미 쓰이는 아이디다
 | `DUPLICATE_EMAIL` | 409 | 이미 가입된 이메일이다
 | `VERIFICATION_ALREADY_USED` | 409 | 이미 가입에 사용된 인증이다
+| `PRODUCT_NOT_ON_SALE` | 409 | 판매 중이 아닌 상품에 판매를 전제한 요청이 왔다
+| `PRODUCT_DISCONTINUED` | 409 | 단종된 상품이다
+| `INSUFFICIENT_STOCK` | 409 | 주문 시점에 재고가 모자란다
+| `ORDER_NOT_CANCELLABLE` | 409 | 이미 취소됐거나 취소할 수 없는 상태다
 | `INVALID_CREDENTIALS` | 401 | 아이디가 없거나 비밀번호가 틀렸다. 둘을 구분하지 않는다
 | `INVALID_REFRESH_TOKEN` | 401 | 리프레시 토큰이 없거나 기한이 지났다
 | `REFRESH_TOKEN_REUSED` | 401 | 이미 쓴 리프레시 토큰이 다시 왔다. 모든 기기에서 로그아웃된다
@@ -204,6 +209,55 @@ operation::auth-logout[snippets='http-request,request-fields,http-response']
 === 내 정보 조회
 
 operation::user-me[snippets='http-request,request-headers,http-response,response-fields']
+
+[[orders]]
+== 주문
+
+인증이 필요하다. 본인 것이 아닌 주문에 접근하면 `403` 이 아니라 `404 ORDER_NOT_FOUND`
+로 답한다 — 순차 발급되는 주문 식별자로 타인의 주문 존재 여부를 추측하지 못하게
+하기 위해서다.
+
+상태는 `PLACED` 와 `CANCELLED` 뿐이다. 결제·배송은 아직 이 API 의 범위가 아니다.
+
+[[orders-place]]
+=== 주문 생성
+
+한 요청에 여러 상품을 담을 수 있다. 같은 상품을 두 번 담거나 빈 목록을 보내면
+`400 INVALID_REQUEST` 로 거절한다.
+
+`unitPrice` 와 `productName` 은 **주문 시점의 스냅샷**이다. 이후 상품 가격이나 이름이
+바뀌어도, 단종되어도 지난 주문 내역은 그대로 남는다.
+
+operation::order-place[snippets='http-request,request-headers,request-fields,http-response,response-fields']
+
+[[orders-detail]]
+=== 주문 상세 조회
+
+operation::order-detail[snippets='http-request,request-headers,path-parameters,http-response,response-fields']
+
+[[orders-list]]
+=== 내 주문 목록
+
+상품 목록과 같은 커서 방식이다. 다만 필터가 없어 커서에는 마지막으로 읽은 주문
+식별자 하나만 담긴다.
+
+operation::order-list[snippets='http-request,request-headers,query-parameters,http-response,response-fields']
+
+[[orders-cancel]]
+=== 주문 취소
+
+`PLACED` 상태일 때만 취소할 수 있다. 취소하면 주문에 담겼던 만큼 상품 재고가
+복원된다.
+
+operation::order-cancel[snippets='http-request,request-headers,path-parameters,http-response,response-fields']
+
+[[orders-insufficient-stock]]
+=== 재고 부족
+
+사전 안내와 실제 차감 사이에 다른 주문이 재고를 먼저 가져갔을 때도 같은 응답이다 —
+두 실패를 구분해서 알려주지 않는다.
+
+operation::error-insufficient-stock[snippets='http-response,response-fields']
 
 [[errors]]
 == 실패 응답 예시
