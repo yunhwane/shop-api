@@ -1,9 +1,11 @@
 package com.example.shopapi.client.payment.toss
 
 import com.example.shopapi.core.domain.common.Money
+import com.example.shopapi.core.domain.payment.PaymentCancelFailedException
 import com.example.shopapi.core.domain.payment.PaymentConfirmFailedException
 import com.example.shopapi.core.domain.payment.PaymentKey
 import com.example.shopapi.core.domain.payment.TossOrderId
+import com.example.shopapi.core.domain.port.PaymentCancellation
 import com.example.shopapi.core.domain.port.PaymentConfirmation
 import com.example.shopapi.core.domain.port.PaymentGateway
 import org.slf4j.LoggerFactory
@@ -17,7 +19,7 @@ import java.time.format.DateTimeParseException
 import java.util.Base64
 
 /**
- * Toss Payments 결제 승인 API 어댑터.
+ * Toss Payments 결제 승인·취소 API 어댑터.
  *
  * `Authorization` 은 시크릿 키를 Basic 인증의 아이디 자리에 넣고 비밀번호는 비운다 -
  * Toss 가 요구하는 인증 방식이다.
@@ -63,6 +65,36 @@ internal class TossPaymentGateway(
         }
     }
 
+    override fun cancel(
+        paymentKey: PaymentKey,
+        cancelReason: String,
+    ): PaymentCancellation {
+        try {
+            val response =
+                tossRestClient
+                    .post()
+                    .uri(properties.cancelEndpoint, paymentKey.value)
+                    .header("Authorization", "Basic ${encodedSecretKey()}")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(CancelRequest(cancelReason))
+                    .retrieve()
+                    .body(CancelResponse::class.java)
+                    ?: throw PaymentCancelFailedException()
+            return PaymentCancellation(canceledAt = OffsetDateTime.parse(response.canceledAt).toInstant())
+        } catch (e: RestClientException) {
+            // 거절 사유를 클라이언트에 노출하지 않는 이유는 confirm 과 같다.
+            log.error("Toss 결제 취소 실패. paymentKey={}", paymentKey, e)
+            throw PaymentCancelFailedException(e)
+        } catch (e: DateTimeParseException) {
+            // Toss 는 이미 취소를 처리했다 - 응답 파싱 실패를 취소 실패와 같은 결과로
+            // 다루면 실제로는 환불된 돈이 기록 없이 사라진다. confirm 의 같은 상황과
+            // 달리 여기서 실패로 던지면 호출자가 로컬 상태를 CANCELLED 로 바꾸지 않으므로,
+            // 수동으로 확인해야 할 사례로 남긴다.
+            log.error("Toss 취소 응답의 canceledAt 을 해석하지 못했다. paymentKey={}", paymentKey, e)
+            throw PaymentCancelFailedException(e)
+        }
+    }
+
     private fun encodedSecretKey(): String =
         Base64.getEncoder().encodeToString("${properties.secretKey}:".toByteArray())
 
@@ -74,5 +106,13 @@ internal class TossPaymentGateway(
 
     private data class ConfirmResponse(
         val approvedAt: String,
+    )
+
+    private data class CancelRequest(
+        val cancelReason: String,
+    )
+
+    private data class CancelResponse(
+        val canceledAt: String,
     )
 }

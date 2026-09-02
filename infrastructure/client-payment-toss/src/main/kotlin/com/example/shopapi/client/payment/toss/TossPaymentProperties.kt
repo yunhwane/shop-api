@@ -15,6 +15,8 @@ data class TossPaymentProperties(
     val provider: String = "toss",
     val secretKey: String = "",
     val confirmEndpoint: String = "https://api.tosspayments.com/v1/payments/confirm",
+    /** `{paymentKey}` 자리에 취소할 결제의 키를 채운다(ADR 0018) */
+    val cancelEndpoint: String = "https://api.tosspayments.com/v1/payments/{paymentKey}/cancel",
     /** 결제 게이트웨이 응답 대기 한도. 요청 스레드를 붙잡는 시간이라 짧게 잡는다 */
     val readTimeout: Duration = Duration.ofSeconds(5),
 )

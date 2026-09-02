@@ -4,6 +4,7 @@ import com.example.shopapi.api.product.application.ProductManagementService
 import com.example.shopapi.api.product.application.ProductRegistrationService
 import com.example.shopapi.api.product.application.RegisterProductCommand
 import com.example.shopapi.core.domain.port.EmailVerificationRepository
+import com.example.shopapi.core.domain.port.ProductRepository
 import com.example.shopapi.core.domain.verification.VerificationId
 import com.example.shopapi.core.enums.ProductCategory
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,6 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
@@ -42,6 +44,7 @@ import kotlin.test.assertNotNull
 class PaymentFlowTest(
     @param:Autowired private val mockMvc: MockMvc,
     @param:Autowired private val verifications: EmailVerificationRepository,
+    @param:Autowired private val products: ProductRepository,
     @param:Autowired private val registrationService: ProductRegistrationService,
     @param:Autowired private val managementService: ProductManagementService,
 ) {
@@ -135,7 +138,7 @@ class PaymentFlowTest(
     }
 
     @Test
-    fun `결제가 완료된 주문은 취소할 수 없다`() {
+    fun `결제 완료 주문을 취소하면 PG 환불 후 CANCELLED 가 되고 재고는 복원되지 않는다`() {
         val token = signUpAndLogin("pay08", "pay08@example.com")
         val productId = onSaleProduct("결제 후 취소 테스트 상품", price = 2_000, stock = 5)
         val orderId = placedOrderId(token, productId, 1)
@@ -146,6 +149,32 @@ class PaymentFlowTest(
                 .response.contentAsString
         val tossOrderId = extract(readyBody, "tossOrderId")
         confirmPayment(token, orderId, tossOrderId, "fake-payment-key-$orderId", 2_000).andExpect(status().isOk)
+        val stockAfterPayment = stockOf(productId)
+
+        mockMvc
+            .perform(post("/api/v1/orders/{id}/cancel", orderId).header(HttpHeaders.AUTHORIZATION, "Bearer $token"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.status").value("CANCELLED"))
+
+        assertEquals(stockAfterPayment, stockOf(productId), "결제완료 주문의 취소는 재고를 복원하지 않는다(ADR 0018)")
+    }
+
+    @Test
+    fun `결제완료 주문을 취소했던 결제는 다시 취소할 수 없다`() {
+        val token = signUpAndLogin("pay10", "pay10@example.com")
+        val productId = onSaleProduct("이중 환불 테스트 상품", price = 1_000, stock = 5)
+        val orderId = placedOrderId(token, productId, 1)
+        val readyBody =
+            readyPayment(token, orderId)
+                .andExpect(status().isCreated)
+                .andReturn()
+                .response.contentAsString
+        val tossOrderId = extract(readyBody, "tossOrderId")
+        confirmPayment(token, orderId, tossOrderId, "fake-payment-key-$orderId", 1_000).andExpect(status().isOk)
+
+        mockMvc
+            .perform(post("/api/v1/orders/{id}/cancel", orderId).header(HttpHeaders.AUTHORIZATION, "Bearer $token"))
+            .andExpect(status().isOk)
 
         mockMvc
             .perform(post("/api/v1/orders/{id}/cancel", orderId).header(HttpHeaders.AUTHORIZATION, "Bearer $token"))
@@ -208,6 +237,8 @@ class PaymentFlowTest(
                 .response.contentAsString
         return Regex("\"id\":(\\d+)").find(body)!!.groupValues[1].toLong()
     }
+
+    private fun stockOf(id: Long): Int = assertNotNull(products.findById(id)).stockQuantity.value
 
     private fun draftProduct(
         name: String,

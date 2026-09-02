@@ -9,8 +9,8 @@ import java.time.Instant
 /**
  * 장바구니식 주문. 여러 [OrderLine] 을 담는다.
  *
- * `PLACED` 에서 `PAID`(결제 확정, ADR 0017) 또는 `CANCELLED`(ADR 0016) 로만 전이한다.
- * `PAID` 에서는 전이가 없다 - 배송 상태는 아직 두지 않는다.
+ * `PLACED` 에서 `PAID`(결제 확정, ADR 0017) 또는 `CANCELLED`(ADR 0016) 로 전이하고,
+ * `PAID` 에서도 `CANCELLED`(환불, ADR 0018) 로 전이한다. 배송 상태는 아직 두지 않는다.
  */
 class Order private constructor(
     val id: Long?,
@@ -33,14 +33,16 @@ class Order private constructor(
     /**
      * 취소.
      *
-     * 여기서 하는 검사는 [OrderRepository.cancelIfPlaced] 로 원자 갱신하기 전의 사전
-     * 확인이다. 동시에 들어온 취소 요청 두 개가 이 검사를 둘 다 통과할 수 있으므로, 실제
-     * 전이 성공 여부는 그 원자 갱신의 반환값으로 다시 확인해야 한다(ADR 0016).
+     * 여기서 하는 검사는 [OrderRepository.cancelIfPlaced]/[OrderRepository.cancelIfPaid] 로
+     * 원자 갱신하기 전의 사전 확인이다. 동시에 들어온 취소 요청 두 개가 이 검사를 둘 다
+     * 통과할 수 있으므로, 실제 전이 성공 여부는 그 원자 갱신의 반환값으로 다시 확인해야
+     * 한다(ADR 0016).
      *
-     * `PAID` 도 이 검사 하나로 걸러진다 - 결제 완료 주문은 취소할 수 없다(ADR 0017).
+     * `PLACED`, `PAID` 둘 다 통과한다 - 결제 완료 주문의 취소는 PG 환불을 동반할 뿐
+     * 주문 상태로는 같은 `CANCELLED` 다(ADR 0018). `CANCELLED` 자신은 걸러진다.
      */
     fun cancel(now: Instant): Order {
-        if (status != OrderStatus.PLACED) {
+        if (status != OrderStatus.PLACED && status != OrderStatus.PAID) {
             throw OrderNotCancellableException()
         }
         return Order(id, buyerId, lines, OrderStatus.CANCELLED, createdAt, now)

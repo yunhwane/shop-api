@@ -66,4 +66,18 @@ class PaymentTest {
 
         assertFailsWith<PaymentNotReadyException> { failed.fail(later.plusSeconds(60)) }
     }
+
+    @Test
+    fun `완료된 결제를 취소하면 CANCELLED 가 된다`() {
+        val confirmed = ready().confirm(PaymentKey.of("payment-key"), later, later)
+
+        val cancelled = confirmed.cancel(later.plusSeconds(60))
+
+        assertEquals(PaymentStatus.CANCELLED, cancelled.status)
+    }
+
+    @Test
+    fun `DONE 이 아닌 시도는 취소할 수 없다`() {
+        assertFailsWith<PaymentNotCancellableException> { ready().cancel(later) }
+    }
 }

@@ -112,11 +112,14 @@ class OrderTest {
         assertFailsWith<OrderNotPayableException> { paid.pay(later.plusSeconds(60)) }
     }
 
+    /** 결제완료 주문의 취소는 환불을 동반한다 - 주문 상태로는 결제 전 취소와 같다(ADR 0018) */
     @Test
-    fun `결제 완료 주문은 취소할 수 없다`() {
+    fun `결제 완료 주문도 취소할 수 있다`() {
         val paid = Order.place(buyerId = 1L, lines = listOf(line()), now = now).pay(later)
 
-        assertFailsWith<OrderNotCancellableException> { paid.cancel(later.plusSeconds(60)) }
+        val cancelled = paid.cancel(later.plusSeconds(60))
+
+        assertEquals(OrderStatus.CANCELLED, cancelled.status)
     }
 
     @Test

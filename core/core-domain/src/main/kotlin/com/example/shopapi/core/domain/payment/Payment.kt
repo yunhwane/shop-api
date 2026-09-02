@@ -59,6 +59,28 @@ class Payment private constructor(
         return Payment(id, orderId, tossOrderId, amount, PaymentStatus.FAILED, paymentKey, approvedAt, createdAt, now)
     }
 
+    /**
+     * PG 취소 성공 반영. [PaymentStatus.DONE] 이 아니면 거부한다(ADR 0018).
+     *
+     * 전액 취소만 다룬다 - 잔액을 남기는 부분 취소는 여기서 표현하지 않는다.
+     */
+    fun cancel(now: Instant): Payment {
+        if (status != PaymentStatus.DONE) {
+            throw PaymentNotCancellableException()
+        }
+        return Payment(
+            id,
+            orderId,
+            tossOrderId,
+            amount,
+            PaymentStatus.CANCELLED,
+            paymentKey,
+            approvedAt,
+            createdAt,
+            now,
+        )
+    }
+
     override fun toString(): String = "Payment(id=$id, orderId=$orderId, status=$status)"
 
     companion object {

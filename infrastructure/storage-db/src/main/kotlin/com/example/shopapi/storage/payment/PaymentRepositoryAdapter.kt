@@ -25,6 +25,9 @@ internal class PaymentRepositoryAdapter(
         tossOrderId: TossOrderId,
     ): Payment? = jpaRepository.findByOrderIdAndTossOrderId(orderId, tossOrderId.value)?.toDomain()
 
+    override fun findDoneByOrderId(orderId: Long): Payment? =
+        jpaRepository.findByOrderIdAndStatus(orderId, PaymentStatus.DONE).firstOrNull()?.toDomain()
+
     override fun markDoneIfReady(
         id: Long,
         paymentKey: PaymentKey,
@@ -44,4 +47,9 @@ internal class PaymentRepositoryAdapter(
         id: Long,
         now: Instant,
     ): Boolean = jpaRepository.markFailedIfReady(id, PaymentStatus.READY, PaymentStatus.FAILED, now) == 1
+
+    override fun markCancelledIfDone(
+        id: Long,
+        now: Instant,
+    ): Boolean = jpaRepository.markCancelledIfDone(id, PaymentStatus.DONE, PaymentStatus.CANCELLED, now) == 1
 }

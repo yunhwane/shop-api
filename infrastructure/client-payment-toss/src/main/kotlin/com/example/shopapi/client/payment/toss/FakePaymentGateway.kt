@@ -3,6 +3,7 @@ package com.example.shopapi.client.payment.toss
 import com.example.shopapi.core.domain.common.Money
 import com.example.shopapi.core.domain.payment.PaymentKey
 import com.example.shopapi.core.domain.payment.TossOrderId
+import com.example.shopapi.core.domain.port.PaymentCancellation
 import com.example.shopapi.core.domain.port.PaymentConfirmation
 import com.example.shopapi.core.domain.port.PaymentGateway
 import com.example.shopapi.core.domain.port.TimeProvider
@@ -30,5 +31,13 @@ internal class FakePaymentGateway(
     ): PaymentConfirmation {
         log.info("[Toss 승인 생략] tossOrderId={} amount={}", tossOrderId.value, amount)
         return PaymentConfirmation(approvedAt = timeProvider.now())
+    }
+
+    override fun cancel(
+        paymentKey: PaymentKey,
+        cancelReason: String,
+    ): PaymentCancellation {
+        log.info("[Toss 취소 생략] paymentKey={} cancelReason={}", paymentKey, cancelReason)
+        return PaymentCancellation(canceledAt = timeProvider.now())
     }
 }

@@ -7,6 +7,7 @@ import com.example.shopapi.api.product.application.ProductManagementService
 import com.example.shopapi.api.product.application.ProductRegistrationService
 import com.example.shopapi.api.product.application.RegisterProductCommand
 import com.example.shopapi.core.domain.port.OrderRepository
+import com.example.shopapi.core.enums.OrderStatus
 import com.example.shopapi.core.enums.ProductCategory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -54,6 +55,21 @@ class OrderRepositoryAdapterTest(
             reloaded.createdAt.truncatedTo(ChronoUnit.SECONDS),
             reloaded.updatedAt.truncatedTo(ChronoUnit.SECONDS),
         )
+    }
+
+    /** [OrderRepository.cancelIfPaid] 는 [OrderRepository.cancelIfPlaced] 와 같은 모양의 조건부 원자 갱신이다(ADR 0018) */
+    @Test
+    fun `PAID 일 때만 CANCELLED 로 전이한다`() {
+        val productId = onSaleProduct(5)
+        val order = placeOrderService.place(1L, PlaceOrderCommand(listOf(PlaceOrderItemCommand(productId, 1))))
+        val orderId = requireNotNull(order.id)
+        val now = order.createdAt
+        orders.markPaidIfPlaced(orderId, now)
+
+        assertEquals(true, orders.cancelIfPaid(orderId, now.plusSeconds(60)))
+        assertEquals(OrderStatus.CANCELLED, assertNotNull(orders.findById(orderId)).status)
+
+        assertEquals(false, orders.cancelIfPaid(orderId, now.plusSeconds(120)))
     }
 
     /**
