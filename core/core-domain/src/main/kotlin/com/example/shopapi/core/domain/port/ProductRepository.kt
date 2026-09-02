@@ -24,6 +24,9 @@ interface ProductRepository {
 
     fun findById(id: Long): Product?
 
+    /** 여러 상품을 한 번에 읽는다. 없는 [id] 는 결과에서 그냥 빠진다 - 호출자가 개수로 판단한다 */
+    fun findAllById(ids: Collection<Long>): List<Product>
+
     /**
      * 판매 중인 상품만 한 쪽 돌려준다.
      *

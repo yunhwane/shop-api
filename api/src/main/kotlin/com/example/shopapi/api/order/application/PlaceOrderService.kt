@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional
  *
  * [Order.place] 호출을 재고 차감보다 먼저 둔다. 빈 주문·중복 상품 검증이 거기서
  * 일어나므로, 검증에 실패했을 때 이미 차감된 재고가 남는 일을 막는다.
+ *
+ * 상품 조회는 라인마다 한 번씩이 아니라 [ProductRepository.findAllById] 로 한 번에
+ * 읽는다. 재고 차감은 그렇게 묶을 수 없다 - 각 줄이 서로 다른 조건부 원자 갱신이다(ADR 0014).
  */
 @Service
 class PlaceOrderService(
@@ -34,7 +37,8 @@ class PlaceOrderService(
         buyerId: Long,
         command: PlaceOrderCommand,
     ): Order {
-        val lines = command.items.map { toLine(it) }
+        val productById = products.findAllById(command.items.map { it.productId }).associateBy { it.id }
+        val lines = command.items.map { toLine(it, productById[it.productId]) }
         val order = Order.place(buyerId = buyerId, lines = lines, now = timeProvider.now())
 
         command.items.forEach { item ->
@@ -46,13 +50,16 @@ class PlaceOrderService(
         return orders.save(order)
     }
 
-    private fun toLine(item: PlaceOrderItemCommand): OrderLine {
-        val product: Product = products.findById(item.productId) ?: throw ProductNotFoundException()
-        product.ensureOrderable(item.quantity)
+    private fun toLine(
+        item: PlaceOrderItemCommand,
+        product: Product?,
+    ): OrderLine {
+        val found = product ?: throw ProductNotFoundException()
+        found.ensureOrderable(item.quantity)
         return OrderLine(
             productId = item.productId,
-            productName = product.name,
-            unitPrice = product.price,
+            productName = found.name,
+            unitPrice = found.price,
             quantity = OrderQuantity.of(item.quantity),
         )
     }

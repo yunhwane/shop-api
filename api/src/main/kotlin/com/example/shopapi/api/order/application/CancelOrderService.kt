@@ -6,6 +6,7 @@ import com.example.shopapi.core.domain.order.OrderNotFoundException
 import com.example.shopapi.core.domain.port.OrderRepository
 import com.example.shopapi.core.domain.port.ProductRepository
 import com.example.shopapi.core.domain.port.TimeProvider
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -25,6 +26,8 @@ class CancelOrderService(
     private val products: ProductRepository,
     private val timeProvider: TimeProvider,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Transactional
     fun cancel(
         buyerId: Long,
@@ -35,12 +38,24 @@ class CancelOrderService(
             throw OrderNotFoundException()
         }
 
-        val cancelled = order.cancel(timeProvider.now())
-        if (!orders.cancelIfPlaced(orderId)) {
+        val now = timeProvider.now()
+        val cancelled = order.cancel(now)
+        if (!orders.cancelIfPlaced(orderId, now)) {
             throw OrderNotCancellableException()
         }
 
-        cancelled.lines.forEach { line -> products.increaseStock(line.productId, line.quantity.value) }
+        cancelled.lines.forEach { line ->
+            if (!products.increaseStock(line.productId, line.quantity.value)) {
+                // 오늘은 일어날 수 없다 - 상품 행은 지우지 않는다(ADR 0014). 그래도 재고가
+                // 조용히 어긋나면 안 되므로, 그 사실이 드러나게 남겨 둔다.
+                log.warn(
+                    "주문 취소로 재고를 복원하지 못했다. orderId={}, productId={}, quantity={}",
+                    orderId,
+                    line.productId,
+                    line.quantity.value,
+                )
+            }
+        }
         return cancelled
     }
 }

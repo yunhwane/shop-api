@@ -13,6 +13,7 @@ import jakarta.persistence.Embeddable
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -41,7 +42,13 @@ class OrderJpaEntity(
     var id: Long? = null,
     @Column(name = "buyer_id", nullable = false)
     var buyerId: Long,
-    @ElementCollection
+    /**
+     * `FetchType.EAGER` 로 둔다. 기본값인 지연 로딩으로는 트랜잭션·영속성 컨텍스트
+     * 바깥에서 [lines] 를 읽으면 `LazyInitializationException` 이 난다. 주문은 항상
+     * 라인을 포함한 하나의 애그리게이트로 다뤄지고, 한 주문의 라인 수도 작아 즉시
+     * 로딩의 비용이 문제가 되지 않는다.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "order_lines", joinColumns = [JoinColumn(name = "order_id")])
     @OrderColumn(name = "line_no")
     var lines: MutableList<OrderLineEmbeddable>,

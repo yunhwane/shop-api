@@ -1,5 +1,6 @@
 package com.example.shopapi.core.domain.order
 
+import com.example.shopapi.core.domain.common.CorruptedDataException
 import com.example.shopapi.core.domain.common.InvalidValueException
 import com.example.shopapi.core.domain.common.Money
 import com.example.shopapi.core.domain.product.ProductName
@@ -52,6 +53,17 @@ class OrderTest {
         assertEquals(now, order.updatedAt)
     }
 
+    /**
+     * 재고를 건드리기 전에 걸려야 한다. `totalAmount` 가 지연 계산이라 응답을 만들 때야
+     * 처음 읽으면, 재고 차감과 저장이 이미 끝난 뒤에 실패한다.
+     */
+    @Test
+    fun `총액이 상한을 넘으면 재고를 건드리기 전에 거부한다`() {
+        assertFailsWith<InvalidValueException> {
+            Order.place(buyerId = 1L, lines = listOf(line(price = 999_999_999, quantity = 2)), now = now)
+        }
+    }
+
     @Test
     fun `총액은 라인 합이다`() {
         val order =
@@ -82,5 +94,20 @@ class OrderTest {
         val cancelled = Order.place(buyerId = 1L, lines = listOf(line()), now = now).cancel(later)
 
         assertFailsWith<OrderNotCancellableException> { cancelled.cancel(later.plusSeconds(60)) }
+    }
+
+    /** 서버 데이터 문제를 클라이언트 입력 탓으로 돌리지 않는다(ADR 0007) */
+    @Test
+    fun `복원한 총액이 상한을 넘으면 저장된 값 문제로 답한다`() {
+        assertFailsWith<CorruptedDataException> {
+            Order.reconstitute(
+                id = 1L,
+                buyerId = 1L,
+                lines = listOf(line(price = 999_999_999, quantity = 2)),
+                status = OrderStatus.PLACED,
+                createdAt = now,
+                updatedAt = now,
+            )
+        }
     }
 }

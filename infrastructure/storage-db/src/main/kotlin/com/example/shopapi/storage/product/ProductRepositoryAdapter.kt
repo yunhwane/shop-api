@@ -32,6 +32,9 @@ internal class ProductRepositoryAdapter(
 
     override fun findById(id: Long): Product? = jpaRepository.findById(id).orElse(null)?.toDomain()
 
+    override fun findAllById(ids: Collection<Long>): List<Product> =
+        jpaRepository.findAllById(ids).map { it.toDomain() }
+
     override fun findOnSalePage(criteria: ProductSearchCriteria): ProductPage =
         ProductPage.of(
             fetched = queryRepository.findOnSalePage(criteria).map { it.toDomain() },
