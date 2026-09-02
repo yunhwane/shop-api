@@ -6,10 +6,10 @@ import com.example.shopapi.core.domain.payment.TossOrderId
 import java.time.Instant
 
 /**
- * PG 승인 호출. 구현은 `infrastructure:client-payment-toss` 가 갖고 있고,
- * `api` 는 이 포트 뒤에서 어떤 PG 를 쓰는지 모른다(ADR 0004, ADR 0017).
+ * PG 승인·취소 호출. 구현은 `infrastructure:client-payment-toss` 가 갖고 있고,
+ * `api` 는 이 포트 뒤에서 어떤 PG 를 쓰는지 모른다(ADR 0004, ADR 0017, ADR 0018).
  */
-fun interface PaymentGateway {
+interface PaymentGateway {
     /**
      * 결제를 승인 확정한다.
      *
@@ -22,8 +22,23 @@ fun interface PaymentGateway {
         tossOrderId: TossOrderId,
         amount: Money,
     ): PaymentConfirmation
+
+    /**
+     * 결제를 전액 취소한다(ADR 0018). 부분 취소(금액 지정)는 다루지 않는다.
+     *
+     * 실패하면 [com.example.shopapi.core.domain.payment.PaymentCancelFailedException] 을
+     * 던진다 - [confirm] 과 같이 PG 거부와 통신 실패를 구분하지 않는다.
+     */
+    fun cancel(
+        paymentKey: PaymentKey,
+        cancelReason: String,
+    ): PaymentCancellation
 }
 
 data class PaymentConfirmation(
     val approvedAt: Instant,
+)
+
+data class PaymentCancellation(
+    val canceledAt: Instant,
 )

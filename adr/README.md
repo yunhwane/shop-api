@@ -24,6 +24,7 @@
 | [0015](0015-product-list-pagination.md) | 상품 목록은 커서 페이지네이션으로 낸다 | 수락됨 |
 | [0016](0016-order-domain-scope.md) | 주문은 결제·배송 없이 PLACED/CANCELLED 로 시작하고, 소유권 검사는 404 로 감춘다 | 수락됨 |
 | [0017](0017-toss-payment-integration.md) | 결제는 Toss 카드 결제만, 동기 confirm 으로 시작하고 결제 완료 주문은 취소를 막는다 | 수락됨 |
+| [0018](0018-payment-refund-via-order-cancel.md) | 결제완료 주문의 환불은 기존 취소 API 를 확장해 전액만 처리하고, 재고는 복원하지 않는다 | 수락됨 |
 
 ## 설계 문서
 

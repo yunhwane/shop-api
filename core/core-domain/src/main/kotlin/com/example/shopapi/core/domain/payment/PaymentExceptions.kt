@@ -11,6 +11,9 @@ class PaymentAmountMismatchException : DomainException(ErrorCode.PAYMENT_AMOUNT_
 /** 이미 완료됐거나 실패해 다시 확정할 수 없는 결제 시도다 */
 class PaymentNotReadyException : DomainException(ErrorCode.PAYMENT_NOT_READY)
 
+/** `DONE` 이 아니라서 취소할 수 없는 결제 시도다(ADR 0018) */
+class PaymentNotCancellableException : DomainException(ErrorCode.PAYMENT_NOT_CANCELLABLE)
+
 /**
  * Toss 승인 호출이 실패했다.
  *
@@ -20,3 +23,8 @@ class PaymentNotReadyException : DomainException(ErrorCode.PAYMENT_NOT_READY)
 class PaymentConfirmFailedException(
     override val cause: Throwable? = null,
 ) : DomainException(ErrorCode.PAYMENT_CONFIRM_FAILED)
+
+/** Toss 취소 호출이 실패했다. [PaymentConfirmFailedException] 과 같은 이유로 원인은 노출하지 않는다(ADR 0018) */
+class PaymentCancelFailedException(
+    override val cause: Throwable? = null,
+) : DomainException(ErrorCode.PAYMENT_CANCEL_FAILED)

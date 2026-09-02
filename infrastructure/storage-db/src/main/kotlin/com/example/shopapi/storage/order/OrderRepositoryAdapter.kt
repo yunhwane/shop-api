@@ -49,4 +49,9 @@ internal class OrderRepositoryAdapter(
         id: Long,
         now: Instant,
     ): Boolean = jpaRepository.markPaidIfPlaced(id, OrderStatus.PLACED, OrderStatus.PAID, now) == 1
+
+    override fun cancelIfPaid(
+        id: Long,
+        now: Instant,
+    ): Boolean = jpaRepository.cancelIfPaid(id, OrderStatus.PAID, OrderStatus.CANCELLED, now) == 1
 }

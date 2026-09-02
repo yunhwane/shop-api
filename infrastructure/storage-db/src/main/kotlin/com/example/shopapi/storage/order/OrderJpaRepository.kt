@@ -55,4 +55,18 @@ internal interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
         @Param("next") next: OrderStatus,
         @Param("now") now: Instant,
     ): Int
+
+    /** 위 둘과 같은 모양의 조건부 원자 갱신이다(ADR 0018) */
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        "update OrderJpaEntity o set o.status = :next, o.updatedAt = :now " +
+            "where o.id = :id and o.status = :current",
+    )
+    fun cancelIfPaid(
+        @Param("id") id: Long,
+        @Param("current") current: OrderStatus,
+        @Param("next") next: OrderStatus,
+        @Param("now") now: Instant,
+    ): Int
 }

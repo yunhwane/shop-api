@@ -91,6 +91,39 @@ class PaymentRepositoryAdapterTest(
         assertFailsWith<InvalidDataAccessApiUsageException> { payments.save(payment) }
     }
 
+    @Test
+    fun `주문의 완료된 결제를 찾는다`() {
+        val payment = readyPayment()
+        val paymentId = requireNotNull(payment.id)
+        val now = Instant.parse("2026-09-02T00:00:00Z")
+        payments.markDoneIfReady(paymentId, PaymentKey.of("done-key"), now, now)
+
+        val found = assertNotNull(payments.findDoneByOrderId(payment.orderId))
+
+        assertEquals(paymentId, found.id)
+    }
+
+    @Test
+    fun `완료되지 않은 주문에는 완료된 결제가 없다`() {
+        val payment = readyPayment()
+
+        assertNull(payments.findDoneByOrderId(payment.orderId))
+    }
+
+    /** [PaymentRepository.markCancelledIfDone] 은 [PaymentRepository.markDoneIfReady] 와 같은 모양의 조건부 원자 갱신이다(ADR 0018) */
+    @Test
+    fun `DONE 일 때만 CANCELLED 로 전이한다`() {
+        val payment = readyPayment()
+        val paymentId = requireNotNull(payment.id)
+        val now = Instant.parse("2026-09-02T00:00:00Z")
+        payments.markDoneIfReady(paymentId, PaymentKey.of("cancel-key"), now, now)
+
+        assertEquals(true, payments.markCancelledIfDone(paymentId, now.plusSeconds(60)))
+        assertEquals(PaymentStatus.CANCELLED, assertNotNull(payments.findById(paymentId)).status)
+
+        assertEquals(false, payments.markCancelledIfDone(paymentId, now.plusSeconds(120)))
+    }
+
     private fun readyPayment(): Payment {
         val productId = onSaleProduct(5)
         val order =

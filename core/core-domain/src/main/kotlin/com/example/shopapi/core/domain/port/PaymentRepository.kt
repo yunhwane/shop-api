@@ -27,6 +27,19 @@ interface PaymentRepository {
     ): Payment?
 
     /**
+     * 이 주문의 완료된(`DONE`) 결제 시도를 찾는다. 환불(ADR 0018)은 `tossOrderId` 를
+     * 모르는 채로 주문 하나에 대한 결제를 찾아야 해서 [findByOrderIdAndTossOrderId] 로는
+     * 안 된다.
+     *
+     * 정상 경로에서는 한 주문에 `DONE` 결제가 최대 하나다 - `ready` 는 주문이 `PLACED`
+     * 일 때만 되므로, `PAID` 로 옮겨간 뒤에는 새 결제 시도가 생기지 않는다. 동시
+     * `confirm` 두 개가 서로 다른 시도를 각각 `DONE` 으로 만드는 좁은 경합(ADR 0017)이
+     * 실제로 일어나면 이 메서드는 그 중 하나만 돌려준다 - 나머지는 이번 범위에서
+     * 다루지 않는다(ADR 0018).
+     */
+    fun findDoneByOrderId(orderId: Long): Payment?
+
+    /**
      * `READY` 일 때만 `DONE` 으로 전이하며 [paymentKey]/[approvedAt] 을 함께 쓰고,
      * 전이했는지 알려준다.
      */
@@ -39,6 +52,12 @@ interface PaymentRepository {
 
     /** `READY` 일 때만 `FAILED` 로 전이하며 전이했는지 알려준다 */
     fun markFailedIfReady(
+        id: Long,
+        now: Instant,
+    ): Boolean
+
+    /** `DONE` 일 때만 `CANCELLED` 로 전이하며 전이했는지 알려준다(ADR 0018) */
+    fun markCancelledIfDone(
         id: Long,
         now: Instant,
     ): Boolean

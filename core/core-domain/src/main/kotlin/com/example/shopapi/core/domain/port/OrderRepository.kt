@@ -56,4 +56,17 @@ interface OrderRepository {
         id: Long,
         now: Instant,
     ): Boolean
+
+    /**
+     * `PAID` 일 때만 `CANCELLED` 로 전이하며 [now] 를 `updatedAt` 에 함께 쓰고, 전이했는지
+     * 알려준다(ADR 0018).
+     *
+     * 호출 시점에는 이미 PG 환불이 끝나 있어야 한다. `false` 는 환불은 됐는데 주문이
+     * 그 사이 다른 이유로 상태가 바뀌었다는 뜻이라, 호출자는 이 경우를 조용히 넘기지
+     * 말고 남겨야 한다 - [markPaidIfPlaced] 의 반환값 규약과 같다.
+     */
+    fun cancelIfPaid(
+        id: Long,
+        now: Instant,
+    ): Boolean
 }
