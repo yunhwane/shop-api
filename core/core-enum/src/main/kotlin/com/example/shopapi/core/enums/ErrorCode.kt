@@ -72,6 +72,9 @@ enum class ErrorCode(
 
     PAYMENT_CANCEL_FAILED("결제 취소에 실패했습니다. 잠시 후 다시 시도해 주세요."),
 
+    /** 아직 결제 전이라 배송이 만들어지지 않았거나, 그런 배송이 없다(ADR 0020) */
+    SHIPMENT_NOT_FOUND("배송 정보를 찾을 수 없습니다."),
+
     MAIL_SEND_FAILED("메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_ERROR("서버 오류가 발생했습니다."),
 }

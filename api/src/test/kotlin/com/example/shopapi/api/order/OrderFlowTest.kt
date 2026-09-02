@@ -50,8 +50,11 @@ class OrderFlowTest(
     @Test
     fun `토큰 없이는 주문할 수 없다`() {
         mockMvc
-            .perform(post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON).content("""{"items":[]}"""))
-            .andExpect(status().isUnauthorized)
+            .perform(
+                post(
+                    "/api/v1/orders",
+                ).contentType(MediaType.APPLICATION_JSON).content("""{"items":[],$SHIPPING_ADDRESS_JSON}"""),
+            ).andExpect(status().isUnauthorized)
             .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
     }
 
@@ -60,7 +63,7 @@ class OrderFlowTest(
         val token = signUpAndLogin("order01", "order01@example.com")
         val productId = onSaleProduct("문서용 셔츠", price = 10_000, stock = 5)
 
-        place(token, """{"items":[{"productId":$productId,"quantity":2}]}""")
+        place(token, """{"items":[{"productId":$productId,"quantity":2}],$SHIPPING_ADDRESS_JSON}""")
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.data.status").value("PLACED"))
             .andExpect(jsonPath("$.data.totalAmount").value(20_000))
@@ -75,7 +78,7 @@ class OrderFlowTest(
     fun `빈 주문은 거절한다`() {
         val token = signUpAndLogin("order02", "order02@example.com")
 
-        place(token, """{"items":[]}""")
+        place(token, """{"items":[],$SHIPPING_ADDRESS_JSON}""")
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
             .andExpect(jsonPath("$.errors[0].field").value("items"))
@@ -86,8 +89,10 @@ class OrderFlowTest(
         val token = signUpAndLogin("order03", "order03@example.com")
         val productId = onSaleProduct("중복 상품", price = 1_000, stock = 10)
 
-        place(token, """{"items":[{"productId":$productId,"quantity":1},{"productId":$productId,"quantity":1}]}""")
-            .andExpect(status().isBadRequest)
+        place(
+            token,
+            """{"items":[{"productId":$productId,"quantity":1},{"productId":$productId,"quantity":1}],$SHIPPING_ADDRESS_JSON}""",
+        ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
             .andExpect(jsonPath("$.errors[0].field").value("items"))
     }
@@ -96,7 +101,7 @@ class OrderFlowTest(
     fun `없는 상품을 담으면 404`() {
         val token = signUpAndLogin("order04", "order04@example.com")
 
-        place(token, """{"items":[{"productId":999999,"quantity":1}]}""")
+        place(token, """{"items":[{"productId":999999,"quantity":1}],$SHIPPING_ADDRESS_JSON}""")
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
     }
@@ -106,7 +111,7 @@ class OrderFlowTest(
         val token = signUpAndLogin("order05", "order05@example.com")
         val productId = draftProduct("미공개 상품", price = 1_000, stock = 10)
 
-        place(token, """{"items":[{"productId":$productId,"quantity":1}]}""")
+        place(token, """{"items":[{"productId":$productId,"quantity":1}],$SHIPPING_ADDRESS_JSON}""")
             .andExpect(status().isConflict)
             .andExpect(jsonPath("$.code").value("PRODUCT_NOT_ON_SALE"))
     }
@@ -116,7 +121,7 @@ class OrderFlowTest(
         val token = signUpAndLogin("order06", "order06@example.com")
         val productId = onSaleProduct("품절 임박", price = 1_000, stock = 2)
 
-        place(token, """{"items":[{"productId":$productId,"quantity":3}]}""")
+        place(token, """{"items":[{"productId":$productId,"quantity":3}],$SHIPPING_ADDRESS_JSON}""")
             .andExpect(status().isConflict)
             .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
 
@@ -132,7 +137,7 @@ class OrderFlowTest(
 
         place(
             token,
-            """{"items":[{"productId":$enough,"quantity":1},{"productId":$short,"quantity":5}]}""",
+            """{"items":[{"productId":$enough,"quantity":1},{"productId":$short,"quantity":5}],$SHIPPING_ADDRESS_JSON}""",
         ).andExpect(status().isConflict)
             .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
 
@@ -247,7 +252,7 @@ class OrderFlowTest(
         quantity: Int,
     ): Long {
         val body =
-            place(token, """{"items":[{"productId":$productId,"quantity":$quantity}]}""")
+            place(token, """{"items":[{"productId":$productId,"quantity":$quantity}],$SHIPPING_ADDRESS_JSON}""")
                 .andExpect(status().isCreated)
                 .andReturn()
                 .response.contentAsString

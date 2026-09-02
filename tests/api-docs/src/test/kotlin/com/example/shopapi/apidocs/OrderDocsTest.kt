@@ -62,7 +62,9 @@ class OrderDocsTest(
                 post("/api/v1/orders")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"items":[{"productId":$productId,"quantity":2}]}"""),
+                    .content(
+                        """{"items":[{"productId":$productId,"quantity":2}],"shippingAddress":{"recipientName":"전윤환","phone":"010-1234-5678","postalCode":"04524","addressLine1":"서울 중구 세종대로 110","addressLine2":"5층"}}""",
+                    ),
             ).andDo(
                 document(
                     "order-place",
@@ -72,6 +74,13 @@ class OrderDocsTest(
                     requestFields(
                         fieldWithPath("items[].productId").description("담을 상품 식별자"),
                         fieldWithPath("items[].quantity").description("수량. 1~100"),
+                        fieldWithPath("shippingAddress.recipientName").description("수령인. 1~50자"),
+                        fieldWithPath("shippingAddress.phone").description("연락처. 숫자와 하이픈"),
+                        fieldWithPath("shippingAddress.postalCode").description("우편번호. 5자리 숫자"),
+                        fieldWithPath("shippingAddress.addressLine1").description("기본주소. 1~200자"),
+                        fieldWithPath("shippingAddress.addressLine2")
+                            .description("상세주소. 1~100자, 없으면 보내지 않는다")
+                            .optional(),
                     ),
                     responseFields(orderFields()),
                 ),
@@ -157,7 +166,9 @@ class OrderDocsTest(
                 post("/api/v1/orders")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"items":[{"productId":$productId,"quantity":2}]}"""),
+                    .content(
+                        """{"items":[{"productId":$productId,"quantity":2}],"shippingAddress":{"recipientName":"전윤환","phone":"010-1234-5678","postalCode":"04524","addressLine1":"서울 중구 세종대로 110","addressLine2":"5층"}}""",
+                    ),
             ).andDo(
                 document(
                     "error-insufficient-stock",
@@ -186,6 +197,11 @@ class OrderDocsTest(
             fieldWithPath("$prefix.lines[].unitPrice").description("주문 시점의 단가 스냅샷"),
             fieldWithPath("$prefix.lines[].quantity").description("수량"),
             fieldWithPath("$prefix.lines[].lineTotal").description("단가 × 수량"),
+            fieldWithPath("$prefix.shippingAddress.recipientName").description("수령인"),
+            fieldWithPath("$prefix.shippingAddress.phone").description("연락처"),
+            fieldWithPath("$prefix.shippingAddress.postalCode").description("우편번호"),
+            fieldWithPath("$prefix.shippingAddress.addressLine1").description("기본주소"),
+            fieldWithPath("$prefix.shippingAddress.addressLine2").description("상세주소. 없으면 null").optional(),
             fieldWithPath("$prefix.createdAt").description("주문 시각"),
         )
 
@@ -199,7 +215,9 @@ class OrderDocsTest(
                     post("/api/v1/orders")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"items":[{"productId":$productId,"quantity":1}]}"""),
+                        .content(
+                            """{"items":[{"productId":$productId,"quantity":1}],"shippingAddress":{"recipientName":"전윤환","phone":"010-1234-5678","postalCode":"04524","addressLine1":"서울 중구 세종대로 110","addressLine2":"5층"}}""",
+                        ),
                 ).andReturn()
                 .response.contentAsString
         return Regex("\"id\":(\\d+)").find(body)!!.groupValues[1].toLong()

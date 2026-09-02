@@ -42,6 +42,7 @@ object ErrorCodeHttpStatus {
             ErrorCode.PAYMENT_NOT_CANCELLABLE to HttpStatus.CONFLICT,
             ErrorCode.PAYMENT_CONFIRM_FAILED to HttpStatus.BAD_GATEWAY,
             ErrorCode.PAYMENT_CANCEL_FAILED to HttpStatus.BAD_GATEWAY,
+            ErrorCode.SHIPMENT_NOT_FOUND to HttpStatus.NOT_FOUND,
             ErrorCode.TOO_MANY_REQUESTS to HttpStatus.TOO_MANY_REQUESTS,
             ErrorCode.MAIL_SEND_FAILED to HttpStatus.BAD_GATEWAY,
             ErrorCode.INTERNAL_ERROR to HttpStatus.INTERNAL_SERVER_ERROR,

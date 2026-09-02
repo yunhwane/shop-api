@@ -3,6 +3,7 @@ package com.example.shopapi.core.domain.order
 import com.example.shopapi.core.domain.common.InvalidValueException
 import com.example.shopapi.core.domain.common.Money
 import com.example.shopapi.core.domain.common.reconstituting
+import com.example.shopapi.core.domain.shipping.ShippingAddress
 import com.example.shopapi.core.enums.OrderStatus
 import java.time.Instant
 
@@ -16,6 +17,7 @@ class Order private constructor(
     val id: Long?,
     val buyerId: Long,
     val lines: List<OrderLine>,
+    val shippingAddress: ShippingAddress,
     val status: OrderStatus,
     val createdAt: Instant,
     val updatedAt: Instant,
@@ -45,7 +47,7 @@ class Order private constructor(
         if (status != OrderStatus.PLACED && status != OrderStatus.PAID) {
             throw OrderNotCancellableException()
         }
-        return Order(id, buyerId, lines, OrderStatus.CANCELLED, createdAt, now)
+        return Order(id, buyerId, lines, shippingAddress, OrderStatus.CANCELLED, createdAt, now)
     }
 
     /**
@@ -64,16 +66,22 @@ class Order private constructor(
      */
     fun pay(now: Instant): Order {
         ensurePayable()
-        return Order(id, buyerId, lines, OrderStatus.PAID, createdAt, now)
+        return Order(id, buyerId, lines, shippingAddress, OrderStatus.PAID, createdAt, now)
     }
 
     override fun toString(): String = "Order(id=$id, buyerId=$buyerId, status=$status)"
 
     companion object {
-        /** 신규 주문. 라인이 비었거나 같은 상품을 중복해서 담으면 거절한다 */
+        /**
+         * 신규 주문. 라인이 비었거나 같은 상품을 중복해서 담으면 거절한다.
+         *
+         * [shippingAddress] 는 주문할 때마다 새로 받는다 - 재사용하는 주소록을 두지
+         * 않기로 했고, 주문 뒤에는 바꿀 수 없다(ADR 0020).
+         */
         fun place(
             buyerId: Long,
             lines: List<OrderLine>,
+            shippingAddress: ShippingAddress,
             now: Instant,
         ): Order {
             if (lines.isEmpty()) {
@@ -87,6 +95,7 @@ class Order private constructor(
                     id = null,
                     buyerId = buyerId,
                     lines = lines,
+                    shippingAddress = shippingAddress,
                     status = OrderStatus.PLACED,
                     createdAt = now,
                     updatedAt = now,
@@ -106,11 +115,12 @@ class Order private constructor(
             id: Long,
             buyerId: Long,
             lines: List<OrderLine>,
+            shippingAddress: ShippingAddress,
             status: OrderStatus,
             createdAt: Instant,
             updatedAt: Instant,
         ): Order {
-            val order = Order(id, buyerId, lines, status, createdAt, updatedAt)
+            val order = Order(id, buyerId, lines, shippingAddress, status, createdAt, updatedAt)
             reconstituting("totalAmount") { order.totalAmount }
             return order
         }

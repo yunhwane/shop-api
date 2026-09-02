@@ -2,23 +2,65 @@ package com.example.shopapi.api.order.dto
 
 import com.example.shopapi.api.order.application.PlaceOrderCommand
 import com.example.shopapi.api.order.application.PlaceOrderItemCommand
+import com.example.shopapi.api.order.application.ShippingAddressCommand
 import com.example.shopapi.api.order.support.OrderCursors
 import com.example.shopapi.core.domain.order.Order
 import com.example.shopapi.core.domain.order.OrderLine
+import com.example.shopapi.core.domain.shipping.ShippingAddress
 import com.example.shopapi.core.enums.OrderStatus
 import java.time.Instant
 
 data class PlaceOrderRequest(
     val items: List<PlaceOrderItemRequest>,
+    val shippingAddress: ShippingAddressRequest,
 ) {
     fun toCommand(): PlaceOrderCommand =
-        PlaceOrderCommand(items.map { PlaceOrderItemCommand(it.productId, it.quantity) })
+        PlaceOrderCommand(
+            items = items.map { PlaceOrderItemCommand(it.productId, it.quantity) },
+            shippingAddress = shippingAddress.toCommand(),
+        )
 }
 
 data class PlaceOrderItemRequest(
     val productId: Long,
     val quantity: Int,
 )
+
+data class ShippingAddressRequest(
+    val recipientName: String,
+    val phone: String,
+    val postalCode: String,
+    val addressLine1: String,
+    val addressLine2: String?,
+) {
+    fun toCommand(): ShippingAddressCommand =
+        ShippingAddressCommand(
+            recipientName = recipientName,
+            phone = phone,
+            postalCode = postalCode,
+            addressLine1 = addressLine1,
+            addressLine2 = addressLine2,
+        )
+}
+
+data class ShippingAddressResponse(
+    val recipientName: String,
+    val phone: String,
+    val postalCode: String,
+    val addressLine1: String,
+    val addressLine2: String?,
+) {
+    companion object {
+        fun from(address: ShippingAddress): ShippingAddressResponse =
+            ShippingAddressResponse(
+                recipientName = address.recipientName.value,
+                phone = address.phone.value,
+                postalCode = address.postalCode.value,
+                addressLine1 = address.addressLine1.value,
+                addressLine2 = address.addressLine2?.value,
+            )
+    }
+}
 
 data class OrderLineResponse(
     val productId: Long,
@@ -44,6 +86,7 @@ data class OrderResponse(
     val status: OrderStatus,
     val totalAmount: Long,
     val lines: List<OrderLineResponse>,
+    val shippingAddress: ShippingAddressResponse,
     val createdAt: Instant,
 ) {
     companion object {
@@ -53,6 +96,7 @@ data class OrderResponse(
                 status = order.status,
                 totalAmount = order.totalAmount.amount,
                 lines = order.lines.map { OrderLineResponse.from(it) },
+                shippingAddress = ShippingAddressResponse.from(order.shippingAddress),
                 createdAt = order.createdAt,
             )
     }

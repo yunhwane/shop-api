@@ -293,6 +293,20 @@ operation::payment-ready[snippets='http-request,request-headers,path-parameters,
 
 operation::payment-confirm[snippets='http-request,request-headers,path-parameters,request-fields,http-response,response-fields']
 
+[[shipments]]
+== 배송
+
+[[shipments-detail]]
+=== 배송 조회
+
+배송은 결제가 확정될 때 `PREPARING` 으로 자동으로 만들어진다. 결제 전 주문을 조회하면
+`404 SHIPMENT_NOT_FOUND` 다.
+
+배송 상태를 바꾸는 API 는 없다 — 권한 모델이 아직 없어 쓰기 유스케이스에 컨트롤러를
+얹지 않았다.
+
+operation::shipment-detail[snippets='http-request,request-headers,path-parameters,http-response,response-fields']
+
 [[errors]]
 == 실패 응답 예시
 

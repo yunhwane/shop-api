@@ -9,6 +9,12 @@ import com.example.shopapi.core.domain.port.TimeProvider
 import com.example.shopapi.core.domain.product.InsufficientStockException
 import com.example.shopapi.core.domain.product.Product
 import com.example.shopapi.core.domain.product.ProductNotFoundException
+import com.example.shopapi.core.domain.shipping.AddressLine1
+import com.example.shopapi.core.domain.shipping.AddressLine2
+import com.example.shopapi.core.domain.shipping.PhoneNumber
+import com.example.shopapi.core.domain.shipping.PostalCode
+import com.example.shopapi.core.domain.shipping.RecipientName
+import com.example.shopapi.core.domain.shipping.ShippingAddress
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -39,7 +45,13 @@ class PlaceOrderService(
     ): Order {
         val productById = products.findAllById(command.items.map { it.productId }).associateBy { it.id }
         val lines = command.items.map { toLine(it, productById[it.productId]) }
-        val order = Order.place(buyerId = buyerId, lines = lines, now = timeProvider.now())
+        val order =
+            Order.place(
+                buyerId = buyerId,
+                lines = lines,
+                shippingAddress = toAddress(command.shippingAddress),
+                now = timeProvider.now(),
+            )
 
         command.items.forEach { item ->
             if (!products.decreaseStockIfEnough(item.productId, item.quantity)) {
@@ -49,6 +61,15 @@ class PlaceOrderService(
 
         return orders.save(order)
     }
+
+    private fun toAddress(command: ShippingAddressCommand): ShippingAddress =
+        ShippingAddress(
+            recipientName = RecipientName.of(command.recipientName),
+            phone = PhoneNumber.of(command.phone),
+            postalCode = PostalCode.of(command.postalCode),
+            addressLine1 = AddressLine1.of(command.addressLine1),
+            addressLine2 = command.addressLine2?.let { AddressLine2.of(it) },
+        )
 
     private fun toLine(
         item: PlaceOrderItemCommand,
